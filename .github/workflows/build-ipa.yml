@@ -8,21 +8,26 @@ on:
 jobs:
   build:
     name: Build DynamicLyrics IPA
-    runs-on: macos-14 # 使用 GitHub 官方免費提供的 Apple Silicon M2 macOS 虛擬主機
+    runs-on: macos-14 # GitHub 官方 macOS 14 虛擬主機
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Select Xcode Version
+      - name: Setup Latest Xcode 16 / 15
         run: |
-          sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
+          # 優先選擇 Xcode 16 (若有)，否則維持當前預設
+          if [ -d "/Applications/Xcode_16.0.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.0.app/Contents/Developer
+          elif [ -d "/Applications/Xcode_15.4.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
+          fi
           xcodebuild -version
 
       - name: Generate Xcode Project via xcodegen
         run: |
           brew install xcodegen
-          xcodegen generate
+          xcodegen generate --spec project.yml
 
       - name: Build and Archive
         run: |
@@ -34,7 +39,8 @@ jobs:
             -destination "generic/platform=iOS" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY=""
+            CODE_SIGN_IDENTITY="" \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES
 
       - name: Package into IPA (Unsigned)
         run: |
