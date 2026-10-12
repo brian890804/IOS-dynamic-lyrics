@@ -223,10 +223,12 @@ struct ContentView: View {
         let playStateChanged = lastPushedIsPlaying != state.isPlaying
         guard lyricChanged || playStateChanged else { return }
 
-        prevLyric = match.prevText
-        currentLyric = match.currentText
-        nextLyric1 = match.nextText1
-        nextLyric2 = match.nextText2
+        withAnimation(.easeInOut(duration: 0.35)) {
+            prevLyric = match.prevText
+            currentLyric = match.currentText
+            nextLyric1 = match.nextText1
+            nextLyric2 = match.nextText2
+        }
         lastPushedIsPlaying = state.isPlaying
 
         LiveActivityManager.shared.updateLyric(

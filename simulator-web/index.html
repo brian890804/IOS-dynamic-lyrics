@@ -124,10 +124,10 @@
       border: 3px solid #ff3b30; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
     }
 
-    /* 【核心黑橘現代感 4 行歌詞卡片】 */
+    /* 【核心黑橘現代感歌詞卡片】純淨暗黑無背景色塊 */
     .carplay-lyrics-4lines-card {
-      background: #08080a;
-      border: 1px solid rgba(255, 122, 31, 0.25);
+      background: #000000;
+      border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 18px;
       padding: 16px 18px;
       display: flex;
@@ -151,70 +151,78 @@
     .cp-song-title { font-size: 14px; font-weight: bold; color: var(--accent); }
     .cp-song-artist { font-size: 11px; color: rgba(255,255,255,0.45); }
 
-    /* 4 行歌詞主體：字體極大、滿版、自動換行自適應 */
-    .four-lines-container {
+    /* 4 行平滑視窗 (Apple Music 滑順體驗，無閃爍瞬跳) */
+    .lyrics-viewport {
+      height: 230px;
+      overflow: hidden;
+      position: relative;
+      margin: 4px 0;
+      mask-image: linear-gradient(to bottom, transparent 0%, black 12%, black 88%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 12%, black 88%, transparent 100%);
+    }
+    .lyrics-scroll-track {
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      margin: 8px 0;
-      flex: 1;
-      justify-content: center;
+      position: relative;
+      transition: transform 0.45s cubic-bezier(0.2, 0.9, 0.3, 1);
+      will-change: transform;
     }
-
-    /* 第 1 條：之前唱過的 (大字 15px、微淡灰) */
-    .line-prev {
+    .lyric-item {
+      min-height: 32px;
+      line-height: 32px;
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.28);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      width: 100%;
+      transition: font-size 0.45s cubic-bezier(0.2, 0.9, 0.3, 1),
+                  color 0.45s ease,
+                  opacity 0.45s ease,
+                  line-height 0.45s cubic-bezier(0.2, 0.9, 0.3, 1);
+      background: transparent !important;
+      box-sizing: border-box;
+      padding: 2px 0;
+    }
+    /* 之前唱過 (第 1 行) */
+    .lyric-item.is-prev {
       font-size: 15px;
       font-weight: 500;
-      color: rgba(255, 255, 255, 0.32);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      color: rgba(255, 255, 255, 0.35);
+      line-height: 34px;
+      opacity: 0.6;
     }
-
-    /* 第 2 條：當下演唱主行 (24px 滿版超大字體、極致加粗、純文字逐字橘色染色、自動彈性縮放) */
-    .line-current-wrap {
-      position: relative;
+    /* 當下焦點演唱行 (第 2 行：24px 滿版、純文字染色、絕無背景區塊填色) */
+    .lyric-item.is-current {
       font-size: 24px;
       font-weight: 900;
-      line-height: 1.2;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      display: inline-block;
-      width: 100%;
+      line-height: 48px;
+      opacity: 1;
+      /* 關鍵要求：純文字漸層染色，絕無背景色塊填滿 */
+      background: linear-gradient(90deg, #ff7a1f var(--progress, 0%), #ffffff var(--progress, 0%));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-color: transparent !important;
     }
-    .karaoke-base {
-      color: #ffffff;
-      width: 100%;
-    }
-    .karaoke-fill {
-      position: absolute;
-      top: 0; left: 0;
-      color: var(--accent); /* 活力橘字體染色 */
-      white-space: nowrap;
-      overflow: hidden;
-      width: 0%;
-      text-shadow: 0 0 10px rgba(255, 122, 31, 0.6);
-      pointer-events: none;
-    }
-
-    /* 第 3 條：下一句即將唱 (大字 17px、明亮白) */
-    .line-next1 {
+    /* 下一句即將唱 (第 3 行) */
+    .lyric-item.is-next1 {
       font-size: 17px;
       font-weight: 600;
       color: rgba(255, 255, 255, 0.78);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      line-height: 36px;
+      opacity: 0.85;
     }
-
-    /* 第 4 條：下下句未來預覽 (14px、微淡) */
-    .line-next2 {
+    /* 下下句未來預覽 (第 4 行) */
+    .lyric-item.is-next2 {
       font-size: 14px;
+      font-weight: 400;
       color: rgba(255, 255, 255, 0.35);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      line-height: 32px;
+      opacity: 0.5;
+    }
+    /* 其他遠端行 */
+    .lyric-item.is-far {
+      opacity: 0.15;
     }
 
     /* Dynamic Island Simulator (黑橘) */
@@ -342,15 +350,11 @@
               </div>
             </div>
 
-            <!-- 4 行純文字滿版 (24px 滿版超大字體) -->
-            <div class="four-lines-container">
-              <div class="line-prev" id="line1">⋯⋯ (前奏)</div>
-              <div class="line-current-wrap">
-                <div class="karaoke-base" id="line2Base">後視鏡裏的世界 越來越遠的道別</div>
-                <div class="karaoke-fill" id="line2Fill">後視鏡裏的世界 越來越遠的道別</div>
+            <!-- 4 行滑順視窗 (Apple Music 滑順體驗 + 純文字橘色填色) -->
+            <div class="lyrics-viewport">
+              <div class="lyrics-scroll-track" id="lyricsScrollTrack">
+                <!-- 動態注入歌詞元素 -->
               </div>
-              <div class="line-next1" id="line3">你轉身向背 側臉還是很美</div>
-              <div class="line-next2" id="line4">我用眼光去追 竟聽見你的淚</div>
             </div>
           </div>
         </div>
@@ -432,6 +436,34 @@
       }
     }
 
+    function renderLyricsTrack() {
+      const track = document.getElementById('lyricsScrollTrack');
+      if (!track) return;
+      track.innerHTML = '';
+
+      // 前奏行
+      const introEl = document.createElement('div');
+      introEl.className = 'lyric-item is-prev';
+      introEl.id = 'lyric-intro';
+      introEl.innerText = '⋯⋯ (前奏)';
+      track.appendChild(introEl);
+
+      currentLyrics.forEach((line, idx) => {
+        const item = document.createElement('div');
+        item.className = 'lyric-item' + (idx === 0 ? ' is-current' : (idx === 1 ? ' is-next1' : (idx === 2 ? ' is-next2' : ' is-far')));
+        item.id = `lyric-${idx}`;
+        item.innerText = line.text;
+        track.appendChild(item);
+      });
+
+      // 尾奏行
+      const outroEl = document.createElement('div');
+      outroEl.className = 'lyric-item is-far';
+      outroEl.id = 'lyric-outro';
+      outroEl.innerText = '（尾奏結束）';
+      track.appendChild(outroEl);
+    }
+
     async function loadSong() {
       const track = document.getElementById('trackInput').value.trim();
       const artist = document.getElementById('artistInput').value.trim();
@@ -460,8 +492,10 @@
           log(`🎨 成功載入高解析度專輯封面。`);
         }
 
+        renderLyricsTrack();
+        activeLineIndex = -999;
         log(`✅ 成功獲取歌詞！共 ${currentLyrics.length} 行時間軸。`);
-        update4Lines(currentProgressMs);
+        update4Lines(currentProgressMs, true);
       } catch (e) {
         log(`❌ 請求異常: ${e.message}`);
       }
@@ -474,7 +508,7 @@
       loadSong();
     }
 
-    function update4Lines(progressMs) {
+    function update4Lines(progressMs, isSeeking = false) {
       if (!currentLyrics || currentLyrics.length === 0) return;
 
       let currentIndex = -1;
@@ -486,41 +520,97 @@
         }
       }
 
-      let prevText = "⋯⋯ (前奏)";
-      let currText = currentLyrics[0] ? currentLyrics[0].text : "";
-      let next1Text = currentLyrics.length > 1 ? currentLyrics[1].text : "";
-      let next2Text = currentLyrics.length > 2 ? currentLyrics[2].text : "";
-      let startMs = 0;
-      let endMs = currentLyrics[0] ? currentLyrics[0].timeMs : 5000;
+      const track = document.getElementById('lyricsScrollTrack');
+      if (!track || track.children.length === 0) return;
 
-      if (currentIndex >= 0) {
-        prevText = (currentIndex > 0) ? currentLyrics[currentIndex - 1].text : "⋯⋯";
-        currText = currentLyrics[currentIndex].text;
-        next1Text = (currentIndex + 1 < currentLyrics.length) ? currentLyrics[currentIndex + 1].text : "（尾奏結束）";
-        next2Text = (currentIndex + 2 < currentLyrics.length) ? currentLyrics[currentIndex + 2].text : "";
-
-        startMs = currentLyrics[currentIndex].timeMs;
-        endMs = (currentIndex + 1 < currentLyrics.length) ? currentLyrics[currentIndex + 1].timeMs : (startMs + 4000);
-      }
-
-      adjustFontSize(currText);
-
-      document.getElementById('line1').innerText = prevText;
-      document.getElementById('line2Base').innerText = currText;
-      document.getElementById('line2Fill').innerText = currText;
-      document.getElementById('line3').innerText = next1Text;
-      document.getElementById('line4').innerText = next2Text;
-      document.getElementById('islandLyric').innerText = currText;
-
-      let percent = 0;
-      if (progressMs >= startMs && endMs > startMs) {
-        percent = Math.min(100, Math.max(0, ((progressMs - startMs) / (endMs - startMs)) * 100));
-      }
-      document.getElementById('line2Fill').style.width = percent.toFixed(1) + '%';
-
-      if (activeLineIndex !== currentIndex) {
+      if (currentIndex !== activeLineIndex || isSeeking) {
+        const oldIndex = activeLineIndex;
         activeLineIndex = currentIndex;
+
+        // 若是大幅跳轉或尋找，暫停動畫以防暈眩；若是正常循序播放，使用 0.45s 滑順平移
+        if (isSeeking || Math.abs(currentIndex - oldIndex) > 1) {
+          track.style.transition = 'none';
+        } else {
+          track.style.transition = 'transform 0.45s cubic-bezier(0.2, 0.9, 0.3, 1)';
+        }
+
+        // 前奏元素狀態
+        const introEl = document.getElementById('lyric-intro');
+        if (introEl) {
+          introEl.className = 'lyric-item ' + (currentIndex < 0 ? 'is-current' : (currentIndex === 0 ? 'is-prev' : 'is-far'));
+        }
+
+        // 更新所有歌詞行的樣式層級
+        for (let i = 0; i < currentLyrics.length; i++) {
+          const el = document.getElementById(`lyric-${i}`);
+          if (!el) continue;
+
+          if (i === currentIndex) {
+            el.className = 'lyric-item is-current';
+            const txt = currentLyrics[i].text;
+            if (txt.length > 20) {
+              el.style.fontSize = '18px';
+              el.style.lineHeight = '38px';
+            } else if (txt.length > 15) {
+              el.style.fontSize = '21px';
+              el.style.lineHeight = '42px';
+            } else {
+              el.style.fontSize = '24px';
+              el.style.lineHeight = '48px';
+            }
+          } else if (i === currentIndex - 1) {
+            el.className = 'lyric-item is-prev';
+            el.style.fontSize = '15px';
+            el.style.lineHeight = '34px';
+            el.style.setProperty('--progress', '100%');
+          } else if (i === currentIndex + 1) {
+            el.className = 'lyric-item is-next1';
+            el.style.fontSize = '17px';
+            el.style.lineHeight = '36px';
+            el.style.setProperty('--progress', '0%');
+          } else if (i === currentIndex + 2) {
+            el.className = 'lyric-item is-next2';
+            el.style.fontSize = '14px';
+            el.style.lineHeight = '32px';
+            el.style.setProperty('--progress', '0%');
+          } else {
+            el.className = 'lyric-item is-far';
+            el.style.fontSize = '14px';
+            el.style.lineHeight = '30px';
+            el.style.setProperty('--progress', '0%');
+          }
+        }
+
+        // 尾奏元素狀態
+        const outroEl = document.getElementById('lyric-outro');
+        if (outroEl) {
+          outroEl.className = 'lyric-item ' + (currentIndex >= currentLyrics.length ? 'is-current' : (currentIndex === currentLyrics.length - 1 ? 'is-next1' : 'is-far'));
+        }
+
+        // 平滑捲動至視窗中第二行位置 (~36px)
+        const targetEl = currentIndex >= 0 ? document.getElementById(`lyric-${currentIndex}`) : introEl;
+        if (targetEl) {
+          const targetOffset = Math.max(0, targetEl.offsetTop - 36);
+          track.style.transform = `translateY(-${targetOffset}px)`;
+        }
+
+        const currText = currentIndex >= 0 ? currentLyrics[currentIndex].text : '⋯⋯ (前奏)';
+        document.getElementById('islandLyric').innerText = currText;
         log(`[CarPlay 焦點行] ➔ "${currText}"`);
+      }
+
+      // 純文字橘色填滿進度 (絕無背景區塊填滿)
+      if (currentIndex >= 0 && currentIndex < currentLyrics.length) {
+        const currentEl = document.getElementById(`lyric-${currentIndex}`);
+        if (currentEl) {
+          const startMs = currentLyrics[currentIndex].timeMs;
+          const endMs = (currentIndex + 1 < currentLyrics.length) ? currentLyrics[currentIndex + 1].timeMs : (startMs + 4000);
+          let percent = 0;
+          if (progressMs >= startMs && endMs > startMs) {
+            percent = Math.min(100, Math.max(0, ((progressMs - startMs) / (endMs - startMs)) * 100));
+          }
+          currentEl.style.setProperty('--progress', `${percent.toFixed(1)}%`);
+        }
       }
     }
 
@@ -549,7 +639,7 @@
         }
         document.getElementById('progressBar').value = currentProgressMs;
         document.getElementById('currentTimeText').innerText = formatTime(currentProgressMs);
-        update4Lines(currentProgressMs);
+        update4Lines(currentProgressMs, false);
       }, step);
     }
 
@@ -563,14 +653,14 @@
     function onSeek(val) {
       currentProgressMs = parseInt(val, 10);
       document.getElementById('currentTimeText').innerText = formatTime(currentProgressMs);
-      update4Lines(currentProgressMs);
+      update4Lines(currentProgressMs, true);
     }
 
     function stepSeconds(sec) {
       currentProgressMs = Math.max(0, Math.min(totalDurationMs, currentProgressMs + sec * 1000));
       document.getElementById('progressBar').value = currentProgressMs;
       document.getElementById('currentTimeText').innerText = formatTime(currentProgressMs);
-      update4Lines(currentProgressMs);
+      update4Lines(currentProgressMs, true);
     }
 
     window.onload = () => {

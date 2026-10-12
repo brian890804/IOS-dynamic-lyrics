@@ -60,7 +60,7 @@ public struct LyricLiveActivityWidget: Widget {
                     Spacer()
                 }
 
-                // 4 行滿版歌詞主體：字體加大、自適應縮放防超長截斷
+                // 4 行滿版歌詞主體：滑順切換無閃爍、純文字染色絕無背景溢色
                 VStack(alignment: .leading, spacing: 7) {
                     // 第 1 條：之前唱過的 (大字 15pt、微淡灰)
                     Text(context.state.prevLyric.isEmpty ? " " : context.state.prevLyric)
@@ -68,8 +68,9 @@ public struct LyricLiveActivityWidget: Widget {
                         .foregroundColor(Color.white.opacity(0.32))
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
+                        .animation(.easeInOut(duration: 0.35), value: context.state.prevLyric)
 
-                    // 第 2 條：當下演唱主行 (24pt 滿版大字號、極致加粗、純文字橘色逐字染色、支援 0.7 彈性縮放防長句截斷)
+                    // 第 2 條：當下演唱主行 (24pt 滿版大字號、極致加粗、純文字逐字橘色染色、無閃爍滑順切換)
                     HStack {
                         KaraokeFocusLine(
                             text: context.state.currentLyric,
@@ -79,7 +80,7 @@ public struct LyricLiveActivityWidget: Widget {
                         )
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .id("focus-\(context.state.currentLyric)")
+                    .animation(.easeInOut(duration: 0.35), value: context.state.currentLyric)
 
                     // 第 3 條：下一句即將唱 (大字 17pt、高亮白)
                     Text(context.state.nextLyric1.isEmpty ? " " : context.state.nextLyric1)
@@ -87,6 +88,7 @@ public struct LyricLiveActivityWidget: Widget {
                         .foregroundColor(Color.white.opacity(0.78))
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
+                        .animation(.easeInOut(duration: 0.35), value: context.state.nextLyric1)
 
                     // 第 4 條：下下句未來預覽 (14pt、次微淡)
                     Text(context.state.nextLyric2.isEmpty ? " " : context.state.nextLyric2)
@@ -94,6 +96,7 @@ public struct LyricLiveActivityWidget: Widget {
                         .foregroundColor(Color.white.opacity(0.35))
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
+                        .animation(.easeInOut(duration: 0.35), value: context.state.nextLyric2)
                 }
             }
             .padding(.horizontal, 16)
@@ -137,6 +140,7 @@ public struct LyricLiveActivityWidget: Widget {
                             .lineLimit(1)
                     }
                     .padding(.top, 4)
+                    .animation(.easeInOut(duration: 0.35), value: context.state.currentLyric)
                 }
             } compactLeading: {
                 Image(systemName: "music.note")
@@ -147,7 +151,7 @@ public struct LyricLiveActivityWidget: Widget {
                     .foregroundColor(themeOrange)
                     .frame(maxWidth: 135, alignment: .trailing)
                     .lineLimit(1)
-                    .id("compact-\(context.state.currentLyric)")
+                    .animation(.easeInOut(duration: 0.3), value: context.state.currentLyric)
             } minimal: {
                 Image(systemName: "music.note")
                     .foregroundColor(themeOrange)
@@ -167,7 +171,7 @@ public struct LyricLiveActivityWidget: Widget {
     }
 }
 
-/// 焦點行：超大字體、純文字染色、內建 minimumScaleFactor 防長句溢出
+/// 焦點行：超大字體、純文字染色 (絕不渲染背景色塊)、自適應縮放防超長截斷
 struct KaraokeFocusLine: View {
     let text: String
     let startTime: Date
@@ -176,40 +180,39 @@ struct KaraokeFocusLine: View {
 
     var body: some View {
         ZStack(alignment: .leading) {
-            // 底層亮白字體
+            // 底層亮白字體 (純粹字體像素，背景全透明)
             Text(text)
                 .font(.system(size: 24, weight: .heavy, design: .rounded))
                 .foregroundColor(.white)
                 .lineLimit(1)
-                .minimumScaleFactor(0.7) // 長句自動縮小至 70%，保證絕不換行或截斷
+                .minimumScaleFactor(0.7)
 
-            // 頂層活力橘染色
+            // 頂層活力橘染色 (只覆蓋字體輪廓，無任何方塊/容器背景顏色)
             Text(text)
                 .font(.system(size: 24, weight: .heavy, design: .rounded))
                 .foregroundColor(highlightColor)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
-                .mask(
-                    GeometryReader { proxy in
-                        ProgressView(timerInterval: startTime...endTime, countsDown: false) {
-                            EmptyView()
-                        } currentValueLabel: {
-                            EmptyView()
-                        }
-                        .progressViewStyle(ContinuousMaskProgressStyle(width: proxy.size.width))
+                .mask(alignment: .leading) {
+                    ProgressView(timerInterval: startTime...endTime, countsDown: false) {
+                        EmptyView()
+                    } currentValueLabel: {
+                        EmptyView()
                     }
-                )
+                    .progressViewStyle(PureTextMaskProgressStyle())
+                }
         }
     }
 }
 
-struct ContinuousMaskProgressStyle: ProgressViewStyle {
-    let width: CGFloat
-
+struct PureTextMaskProgressStyle: ProgressViewStyle {
     func makeBody(configuration: Configuration) -> some View {
-        let fraction = CGFloat(configuration.fractionCompleted ?? 1.0)
-        Rectangle()
-            .frame(width: max(0, width * fraction))
-            .frame(maxWidth: .infinity, alignment: .leading)
+        GeometryReader { geo in
+            let fraction = CGFloat(configuration.fractionCompleted ?? 1.0)
+            Rectangle()
+                .fill(Color.black) // 在 mask 中僅作為不透明度通道揭露文字，不帶任何外顯顏色
+                .frame(width: max(0, min(geo.size.width, geo.size.width * fraction)))
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 }
