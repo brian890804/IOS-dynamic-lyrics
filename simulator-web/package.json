@@ -1,0 +1,10 @@
+{
+  "name": "ios-dynamic-lyrics-local-sim",
+  "version": "1.0.0",
+  "description": "Local test harness and interactive simulator for iOS Dynamic Lyrics (CarPlay & Live Activities)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {}
+}

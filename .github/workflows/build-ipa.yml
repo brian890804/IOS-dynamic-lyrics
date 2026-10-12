@@ -1,0 +1,53 @@
+name: Build iOS IPA (No Mac Required)
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch: # 支援在 GitHub 網頁手動點擊按鈕一鍵觸發
+
+jobs:
+  build:
+    name: Build DynamicLyrics IPA
+    runs-on: macos-14 # 使用 GitHub 官方免費提供的 Apple Silicon M2 macOS 虛擬主機
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Select Xcode Version
+        run: |
+          sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
+          xcodebuild -version
+
+      - name: Generate Xcode Project via xcodegen
+        run: |
+          brew install xcodegen
+          xcodegen generate
+
+      - name: Build and Archive
+        run: |
+          xcodebuild archive \
+            -project DynamicLyrics.xcodeproj \
+            -scheme DynamicLyrics \
+            -configuration Release \
+            -archivePath build/DynamicLyrics.xcarchive \
+            -destination "generic/platform=iOS" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+
+      - name: Package into IPA (Unsigned)
+        run: |
+          mkdir -p build/Payload
+          cp -R build/DynamicLyrics.xcarchive/Products/Applications/DynamicLyrics.app build/Payload/
+          cd build
+          zip -r DynamicLyrics.ipa Payload
+          cd ..
+          ls -lh build/DynamicLyrics.ipa
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DynamicLyrics-Unsigned-IPA
+          path: build/DynamicLyrics.ipa
+          retention-days: 14

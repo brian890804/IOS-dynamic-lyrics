@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>靈動歌詞 (Dynamic Lyrics) - CarPlay 4行歌詞 & 卡拉OK逐字染色模擬器</title>
+  <style>
+    :root {
+      --bg: #090a0f;
+      --panel-bg: #16171b;
+      --carplay-bg: #0d0e12;
+      --accent: #1db954;
+      --text: #ffffff;
+      --text-muted: #8e8e93;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding: 20px; display: flex; flex-direction: column; align-items: center; }
+    .main-wrap { max-width: 1060px; width: 100%; display: flex; flex-direction: column; gap: 20px; }
+
+    header { text-align: center; }
+    
+    .panel { background: var(--panel-bg); border-radius: 16px; padding: 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+    .input-row { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+    input { flex: 1; min-width: 160px; background: #24252a; border: 1px solid #34353d; color: white; padding: 9px 13px; border-radius: 8px; font-size: 14px; }
+    input:focus { outline: none; border-color: var(--accent); }
+    button { background: var(--accent); color: black; font-weight: bold; border: none; padding: 9px 18px; border-radius: 8px; cursor: pointer; transition: 0.2s; font-size: 14px; }
+    button:hover { filter: brightness(1.1); transform: scale(1.02); }
+    button.secondary { background: #34353d; color: white; }
+
+    .slider-row { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--text-muted); margin: 10px 0; }
+    input[type=range] { flex: 1; accent-color: var(--accent); cursor: pointer; }
+    .preset-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+
+    /* ========================================================= */
+    /* 1:1 仿真 Apple CarPlay 800x480 / 1920x1080 儀表板視窗 */
+    /* ========================================================= */
+    .carplay-screen-frame {
+      background: #000;
+      border: 12px solid #282a30;
+      border-radius: 28px;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 0 2px rgba(255,255,255,0.06);
+      position: relative;
+    }
+    .carplay-header-bar {
+      background: #181920;
+      padding: 6px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: var(--text-muted);
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .carplay-dashboard-body {
+      display: flex;
+      height: 400px;
+      background: var(--carplay-bg);
+      position: relative;
+    }
+
+    /* CarPlay 左側 Dock 邊欄 */
+    .carplay-sidebar {
+      width: 72px;
+      background: rgba(18, 19, 24, 0.95);
+      border-right: 1px solid rgba(255,255,255,0.08);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 0;
+      z-index: 5;
+    }
+    .cp-home-btn {
+      width: 44px; height: 44px; border-radius: 12px; background: rgba(255,255,255,0.08);
+      display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: pointer;
+    }
+    .cp-dock-icons { display: flex; flex-direction: column; gap: 16px; align-items: center; }
+    .cp-dock-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; box-shadow: 0 4px 10px rgba(0,0,0,0.4); }
+    .cp-dock-icon.active { outline: 2px solid var(--accent); }
+    .cp-status-info { font-size: 11px; text-align: center; color: var(--text-muted); line-height: 1.3; }
+
+    /* CarPlay 右側分欄內容區 (地圖 + 4行歌詞小工具) */
+    .carplay-content-area {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 12px;
+      padding: 12px;
+      background: #0d0f14;
+    }
+
+    /* 左側主卡片：車機地圖導航模擬 */
+    .carplay-map-card {
+      background: radial-gradient(circle at 50% 50%, #1e2530 0%, #12161f 100%);
+      border-radius: 18px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 16px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .map-grid-bg {
+      position: absolute; inset: 0;
+      background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 30px 30px;
+    }
+    .nav-instruction {
+      position: relative; z-index: 2;
+      background: rgba(0,0,0,0.65); backdrop-filter: blur(8px);
+      padding: 10px 14px; border-radius: 12px; display: flex; align-items: center; gap: 10px;
+      border: 1px solid rgba(255,255,255,0.08); width: fit-content;
+    }
+    .nav-turn-icon { font-size: 22px; color: #32d74b; }
+    .nav-text { font-size: 13px; font-weight: bold; }
+
+    .nav-speed {
+      position: relative; z-index: 2;
+      width: 44px; height: 44px; border-radius: 22px; background: white; color: black;
+      font-weight: 900; font-size: 16px; display: flex; align-items: center; justify-content: center;
+      border: 3px solid #ff3b30; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+
+    /* 右側小工具堆疊區 (4 行歌詞專區) */
+    .carplay-widgets-column {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* 【核心亮點】4 行靈動歌詞卡片 */
+    .carplay-lyrics-4lines-card {
+      flex: 1;
+      background: linear-gradient(135deg, #161720 0%, #101116 100%);
+      border: 1px solid rgba(29, 185, 84, 0.4);
+      border-radius: 18px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.7);
+    }
+
+    .cp-widget-header {
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      padding-bottom: 6px;
+    }
+    .cp-song-info { display: flex; align-items: center; gap: 8px; }
+    .cp-app-badge { width: 20px; height: 20px; border-radius: 5px; }
+    .cp-song-title { font-size: 13px; font-weight: bold; color: var(--accent); }
+    .cp-song-artist { font-size: 12px; color: var(--text-muted); }
+    .cp-tag { font-size: 10px; background: rgba(29, 185, 84, 0.2); color: var(--accent); padding: 2px 6px; border-radius: 5px; font-weight: bold; }
+
+    /* 4 行歌詞區域 */
+    .four-lines-container {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin: 8px 0;
+    }
+
+    /* 第 1 條：之前唱過的 (淡灰) */
+    .line-prev {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.35);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* 第 2 條：當下唱的焦點行 (卡拉OK逐字漸層染色) */
+    .line-current-wrap {
+      position: relative;
+      font-size: 17px;
+      font-weight: 800;
+      line-height: 1.3;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: inline-block;
+      width: 100%;
+    }
+    /* 底層白字 */
+    .karaoke-base {
+      color: #ffffff;
+      width: 100%;
+    }
+    /* 頂層染色層 (由左至右平滑裁剪) */
+    .karaoke-fill {
+      position: absolute;
+      top: 0; left: 0;
+      color: var(--accent);
+      white-space: nowrap;
+      overflow: hidden;
+      width: 0%;
+      text-shadow: 0 0 12px rgba(29, 185, 84, 0.8);
+      pointer-events: none;
+    }
+
+    /* 第 3 條：下一句即將唱 (次加亮) */
+    .line-next1 {
+      font-size: 13px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.7);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* 第 4 條：下下句未來預覽 (微淡) */
+    .line-next2 {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.3);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .cp-widget-footer {
+      display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--text-muted);
+      border-top: 1px solid rgba(255,255,255,0.05);
+      padding-top: 4px;
+    }
+
+    /* Dynamic Island Simulator */
+    .island-container { display: flex; justify-content: center; margin-top: 6px; }
+    .dynamic-island {
+      background: #000;
+      border: 1px solid #282828;
+      border-radius: 24px;
+      padding: 7px 14px;
+      width: 330px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+    }
+    .island-left { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--accent); font-weight: bold; }
+    .island-right { font-size: 11px; color: var(--accent); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: bold; }
+
+    /* Console */
+    .console-box {
+      background: #0a0b0d;
+      border: 1px solid #222;
+      border-radius: 10px;
+      padding: 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11px;
+      max-height: 120px;
+      overflow-y: auto;
+      color: #98c379;
+    }
+    .log-line { margin-bottom: 3px; }
+    .log-time { color: #5c6370; margin-right: 6px; }
+  </style>
+</head>
+<body>
+  <div class="main-wrap">
+    <header>
+      <div style="display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 4px;">
+        <img src="icon.jpg" alt="Icon" style="width: 52px; height: 52px; border-radius: 13px; box-shadow: 0 4px 15px rgba(29, 185, 84, 0.4); border: 1px solid rgba(255,255,255,0.1);">
+        <div style="text-align: left;">
+          <h1 style="font-size: 24px; color: var(--accent);">靈動歌詞 (Dynamic Lyrics) 4-Lines</h1>
+          <p style="font-size: 13px; color: var(--text-muted);">CarPlay 4 條歌詞版面 + 卡拉OK逐字左至右染色實作</p>
+        </div>
+      </div>
+    </header>
+
+    <!-- 控制面版 -->
+    <div class="panel">
+      <div class="input-row">
+        <input type="text" id="trackInput" value="一路向北" placeholder="歌名">
+        <input type="text" id="artistInput" value="周杰倫" placeholder="歌手">
+        <button id="loadBtn" onclick="loadSong()">載入歌詞</button>
+      </div>
+
+      <div class="slider-row">
+        <span id="currentTimeText">00:00</span>
+        <input type="range" id="progressBar" min="0" max="295000" value="0" oninput="onSeek(this.value)">
+        <span id="durationTimeText">04:55</span>
+      </div>
+
+      <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <button id="playBtn" onclick="togglePlay()">▶ 開始播放</button>
+        <button class="secondary" onclick="stepSeconds(-5)">⏪ -5秒</button>
+        <button class="secondary" onclick="stepSeconds(5)">⏩ +5秒</button>
+        <div class="preset-row" style="margin-top: 0;">
+          <button class="secondary" onclick="switchPreset('一路向北', '周杰倫')">一路向北</button>
+          <button class="secondary" onclick="switchPreset('夜曲', '周杰倫')">夜曲</button>
+          <button class="secondary" onclick="switchPreset('晴天', '周杰倫')">晴天</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Apple CarPlay 實車 4-條歌詞儀表板視窗 -->
+    <div class="carplay-screen-frame">
+      <div class="carplay-header-bar">
+        <span>🚗 Apple CarPlay 車機畫面 (4 條歌詞排版)</span>
+        <span id="carplayClock">09:05</span>
+      </div>
+
+      <div class="carplay-dashboard-body">
+        <!-- 左側 CarPlay Dock -->
+        <div class="carplay-sidebar">
+          <div class="cp-home-btn">⊞</div>
+          <div class="cp-dock-icons">
+            <div class="cp-dock-icon" style="background: #252830;">🗺️</div>
+            <div class="cp-dock-icon active" style="background: #111;">
+              <span style="color: #1db954; font-size: 22px;">●</span>
+            </div>
+            <div class="cp-dock-icon" style="background: #111;">
+              <img src="icon.jpg" style="width: 28px; height: 28px; border-radius: 6px;">
+            </div>
+          </div>
+          <div class="cp-status-info">
+            <div>5G</div>
+            <div>100%</div>
+          </div>
+        </div>
+
+        <!-- 儀表板內容區 -->
+        <div class="carplay-content-area">
+          <!-- 左側地圖導航 -->
+          <div class="carplay-map-card">
+            <div class="map-grid-bg"></div>
+            <div class="nav-instruction">
+              <div class="nav-turn-icon">↱</div>
+              <div>
+                <div class="nav-text">300 公尺後 右轉</div>
+                <div style="font-size: 11px; color: var(--text-muted);">市民大道高架道路</div>
+              </div>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; position: relative; z-index: 2;">
+              <div class="nav-speed">60</div>
+              <div style="font-size: 12px; color: rgba(255,255,255,0.7); background: rgba(0,0,0,0.5); padding: 4px 8px; border-radius: 6px;">
+                距離目的地 8.2 km • 14 分鐘
+              </div>
+            </div>
+          </div>
+
+          <!-- 右側：【4 條歌詞 Live Activity】 -->
+          <div class="carplay-widgets-column">
+            <div class="carplay-lyrics-4lines-card">
+              <div class="cp-widget-header">
+                <div class="cp-song-info">
+                  <img src="icon.jpg" class="cp-app-badge" alt="App">
+                  <div>
+                    <span class="cp-song-title" id="cpTrack">一路向北</span>
+                    <span class="cp-song-artist" id="cpArtist">• 周杰倫</span>
+                  </div>
+                </div>
+                <span class="cp-tag">卡拉OK 逐字染色</span>
+              </div>
+
+              <!-- 4 行架構 -->
+              <div class="four-lines-container">
+                <!-- 1. 之前唱過的 -->
+                <div class="line-prev" id="line1">⋯⋯ (前奏)</div>
+                <!-- 2. 當下正在唱的 (卡拉OK逐字平滑變色) -->
+                <div class="line-current-wrap">
+                  <div class="karaoke-base" id="line2Base">後視鏡裏的世界 越來越遠的道別</div>
+                  <div class="karaoke-fill" id="line2Fill">後視鏡裏的世界 越來越遠的道別</div>
+                </div>
+                <!-- 3. 下一句將要唱的 -->
+                <div class="line-next1" id="line3">你轉身向背 側臉還是很美</div>
+                <!-- 4. 下下句未來預覽 -->
+                <div class="line-next2" id="line4">我用眼光去追 竟聽見你的淚</div>
+              </div>
+
+              <div class="cp-widget-footer">
+                <span style="font-size: 10px; color: var(--text-muted);">第 2 條隨演唱速率動態平滑推演</span>
+                <span style="font-size: 10px; color: var(--accent);">ActivityKit 渲染中</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- iPhone 動態島視圖 -->
+    <div class="panel">
+      <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">
+        <span>📱 iPhone 動態島 Compact 視圖 (聚焦當前句)</span>
+      </div>
+      <div class="island-container">
+        <div class="dynamic-island">
+          <div class="island-left">
+            <span>🎵</span>
+            <span id="islandTrack">一路向北</span>
+          </div>
+          <div class="island-right" id="islandLyric">後視鏡裏的世界 越來越遠的道別</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 日誌 -->
+    <div class="panel">
+      <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 6px;">
+        <span>⚙️ 即時事件日誌</span>
+      </div>
+      <div class="console-box" id="logBox">
+        <div class="log-line"><span class="log-time">[Init]</span> 4 行歌詞與卡拉OK漸進染色引擎就緒。</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentLyrics = [];
+    let isPlaying = false;
+    let timer = null;
+    let currentProgressMs = 0;
+    let totalDurationMs = 295000;
+
+    let activeLineIndex = -1;
+    let activeLineStartMs = 0;
+    let activeLineEndMs = 0;
+
+    function formatTime(ms) {
+      const totalSec = Math.floor(ms / 1000);
+      const m = Math.floor(totalSec / 60);
+      const s = totalSec % 60;
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function updateClock() {
+      const d = new Date();
+      const h = String(d.getHours()).padStart(2, '0');
+      const m = String(d.getMinutes()).padStart(2, '0');
+      document.getElementById('carplayClock').innerText = `${h}:${m}`;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    function log(msg) {
+      const box = document.getElementById('logBox');
+      const timeStr = new Date().toLocaleTimeString();
+      const div = document.createElement('div');
+      div.className = 'log-line';
+      div.innerHTML = `<span class="log-time">[${timeStr}]</span> ${msg}`;
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    async function loadSong() {
+      const track = document.getElementById('trackInput').value.trim();
+      const artist = document.getElementById('artistInput').value.trim();
+      log(`請求歌詞: 【${track}】 - ${artist}...`);
+
+      try {
+        const res = await fetch(`/api/lyrics?track=${encodeURIComponent(track)}&artist=${encodeURIComponent(artist)}`);
+        const data = await res.json();
+
+        if (data.error) {
+          log(`⚠️ 抓取失敗: ${data.error}`);
+          alert(`抓取失敗: ${data.error}`);
+          return;
+        }
+
+        currentLyrics = data.lyrics;
+        totalDurationMs = (data.duration || 230) * 1000;
+        document.getElementById('progressBar').max = totalDurationMs;
+        document.getElementById('durationTimeText').innerText = formatTime(totalDurationMs);
+        document.getElementById('cpTrack').innerText = data.trackName;
+        document.getElementById('cpArtist').innerText = `• ${data.artistName}`;
+        document.getElementById('islandTrack').innerText = data.trackName;
+
+        log(`✅ 成功獲取歌詞！共 ${currentLyrics.length} 行時間軸。`);
+        update4Lines(currentProgressMs);
+      } catch (e) {
+        log(`❌ 請求異常: ${e.message}`);
+      }
+    }
+
+    function switchPreset(track, artist) {
+      document.getElementById('trackInput').value = track;
+      document.getElementById('artistInput').value = artist;
+      currentProgressMs = 0;
+      loadSong();
+    }
+
+    // 4 行歌詞比對與卡拉OK平滑染色
+    function update4Lines(progressMs) {
+      if (!currentLyrics || currentLyrics.length === 0) return;
+
+      let currentIndex = -1;
+      for (let i = 0; i < currentLyrics.length; i++) {
+        if (currentLyrics[i].timeMs <= progressMs) {
+          currentIndex = i;
+        } else {
+          break;
+        }
+      }
+
+      let prevText = "⋯⋯ (前奏)";
+      let currText = currentLyrics[0] ? currentLyrics[0].text : "";
+      let next1Text = currentLyrics.length > 1 ? currentLyrics[1].text : "";
+      let next2Text = currentLyrics.length > 2 ? currentLyrics[2].text : "";
+      let startMs = 0;
+      let endMs = currentLyrics[0] ? currentLyrics[0].timeMs : 5000;
+
+      if (currentIndex >= 0) {
+        prevText = (currentIndex > 0) ? currentLyrics[currentIndex - 1].text : "⋯⋯";
+        currText = currentLyrics[currentIndex].text;
+        next1Text = (currentIndex + 1 < currentLyrics.length) ? currentLyrics[currentIndex + 1].text : "（尾奏結束）";
+        next2Text = (currentIndex + 2 < currentLyrics.length) ? currentLyrics[currentIndex + 2].text : "";
+
+        startMs = currentLyrics[currentIndex].timeMs;
+        endMs = (currentIndex + 1 < currentLyrics.length) ? currentLyrics[currentIndex + 1].timeMs : (startMs + 4000);
+      }
+
+      // 更新文字
+      document.getElementById('line1').innerText = prevText;
+      document.getElementById('line2Base').innerText = currText;
+      document.getElementById('line2Fill').innerText = currText;
+      document.getElementById('line3').innerText = next1Text;
+      document.getElementById('line4').innerText = next2Text;
+      document.getElementById('islandLyric').innerText = currText;
+
+      // 計算第 2 條 (焦點行) 的卡拉OK染色百分比 (從左至右按照唱的速率)
+      let percent = 0;
+      if (progressMs >= startMs && endMs > startMs) {
+        percent = Math.min(100, Math.max(0, ((progressMs - startMs) / (endMs - startMs)) * 100));
+      }
+      document.getElementById('line2Fill').style.width = percent.toFixed(1) + '%';
+
+      if (activeLineIndex !== currentIndex) {
+        activeLineIndex = currentIndex;
+        log(`[CarPlay 4-Lines 換行] 焦點行 ➔ "${currText}" (行持續 ${((endMs - startMs)/1000).toFixed(1)}s)`);
+      }
+    }
+
+    function togglePlay() {
+      if (currentLyrics.length === 0) {
+        loadSong().then(() => startPlayback());
+        return;
+      }
+      if (isPlaying) {
+        pausePlayback();
+      } else {
+        startPlayback();
+      }
+    }
+
+    function startPlayback() {
+      isPlaying = true;
+      document.getElementById('playBtn').innerText = '⏸ 暫停播放';
+      log(`[ActivityKit] 4-Lines 卡拉OK渲染開始推進`);
+
+      // 50ms 超平滑幀率推動文字進度條染色
+      const step = 50;
+      timer = setInterval(() => {
+        currentProgressMs += step;
+        if (currentProgressMs > totalDurationMs) {
+          pausePlayback();
+          currentProgressMs = 0;
+        }
+        document.getElementById('progressBar').value = currentProgressMs;
+        document.getElementById('currentTimeText').innerText = formatTime(currentProgressMs);
+        update4Lines(currentProgressMs);
+      }, step);
+    }
+
+    function pausePlayback() {
+      isPlaying = false;
+      document.getElementById('playBtn').innerText = '▶ 開始播放';
+      clearInterval(timer);
+      timer = null;
+      log(`[CarPlay] 音樂暫停`);
+    }
+
+    function onSeek(val) {
+      currentProgressMs = parseInt(val, 10);
+      document.getElementById('currentTimeText').innerText = formatTime(currentProgressMs);
+      update4Lines(currentProgressMs);
+    }
+
+    function stepSeconds(sec) {
+      currentProgressMs = Math.max(0, Math.min(totalDurationMs, currentProgressMs + sec * 1000));
+      document.getElementById('progressBar').value = currentProgressMs;
+      document.getElementById('currentTimeText').innerText = formatTime(currentProgressMs);
+      update4Lines(currentProgressMs);
+    }
+
+    window.onload = () => {
+      loadSong();
+    };
+  </script>
+</body>
+</html>

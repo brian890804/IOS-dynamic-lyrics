@@ -1,0 +1,41 @@
+name: DynamicLyrics
+options:
+  bundleIdPrefix: com.example
+  deploymentTarget:
+    iOS: "17.0"
+
+settings:
+  SWIFT_VERSION: "5.9"
+  CURRENT_PROJECT_VERSION: 1
+  MARKETING_VERSION: "1.0.0"
+
+targets:
+  DynamicLyrics:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: ios-app/DynamicLyrics
+    info:
+      path: ios-app/DynamicLyrics/Info.plist
+      properties:
+        NSSupportsLiveActivities: true
+        NSSupportsLiveActivitiesFrequentUpdates: true
+        UIBackgroundModes:
+          - audio
+    dependencies:
+      - target: LyricWidget
+
+  LyricWidget:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: ios-app/LyricWidget
+      - path: ios-app/DynamicLyrics/LyricAttributes.swift
+    info:
+      path: ios-app/LyricWidget/Info.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+        NSSupportsLiveActivities: true
