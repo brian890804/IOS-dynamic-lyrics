@@ -70,17 +70,14 @@ public struct LyricLiveActivityWidget: Widget {
                         .minimumScaleFactor(0.8)
                         .animation(.easeInOut(duration: 0.35), value: context.state.prevLyric)
 
-                    // 第 2 條：當下演唱主行 (24pt 滿版大字號、極致加粗、純文字逐字橘色染色、無閃爍滑順切換)
-                    HStack {
-                        KaraokeFocusLine(
-                            text: context.state.currentLyric,
-                            startTime: context.state.lineStartTime,
-                            endTime: context.state.lineEndTime,
-                            highlightColor: themeOrange
-                        )
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .animation(.easeInOut(duration: 0.35), value: context.state.currentLyric)
+                    // 第 2 條：當下演唱主行 (24pt 滿版大字號、極致加粗、經典純橘色、無閃爍滑順切換)
+                    Text(context.state.currentLyric.isEmpty ? " " : context.state.currentLyric)
+                        .font(.system(size: 24, weight: .heavy, design: .rounded))
+                        .foregroundColor(themeOrange)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .animation(.easeInOut(duration: 0.35), value: context.state.currentLyric)
 
                     // 第 3 條：下一句即將唱 (大字 17pt、高亮白)
                     Text(context.state.nextLyric1.isEmpty ? " " : context.state.nextLyric1)
@@ -171,58 +168,3 @@ public struct LyricLiveActivityWidget: Widget {
     }
 }
 
-/// 焦點行：超大字體、純文字染色 (絕不渲染背景色塊)、互補遮罩防白邊溢出
-struct KaraokeFocusLine: View {
-    let text: String
-    let startTime: Date
-    let endTime: Date
-    let highlightColor: Color
-
-    var body: some View {
-        ZStack(alignment: .leading) {
-            // 右側未唱區域：純白色 (動態向右縮減，已唱區域完全不渲染底層白字，絕無毛邊殘影)
-            Text(text)
-                .font(.system(size: 24, weight: .heavy, design: .rounded))
-                .foregroundColor(.white)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-                .mask(alignment: .trailing) {
-                    ProgressView(timerInterval: startTime...endTime, countsDown: true) {
-                        EmptyView()
-                    } currentValueLabel: {
-                        EmptyView()
-                    }
-                    .progressViewStyle(PureTextMaskProgressStyle(alignment: .trailing))
-                }
-
-            // 左側已唱區域：純活力橘色 (動態由左向右推進，底層為純黑背景，飽和度極致通透)
-            Text(text)
-                .font(.system(size: 24, weight: .heavy, design: .rounded))
-                .foregroundColor(highlightColor)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-                .mask(alignment: .leading) {
-                    ProgressView(timerInterval: startTime...endTime, countsDown: false) {
-                        EmptyView()
-                    } currentValueLabel: {
-                        EmptyView()
-                    }
-                    .progressViewStyle(PureTextMaskProgressStyle(alignment: .leading))
-                }
-        }
-    }
-}
-
-struct PureTextMaskProgressStyle: ProgressViewStyle {
-    var alignment: Alignment = .leading
-
-    func makeBody(configuration: Configuration) -> some View {
-        GeometryReader { geo in
-            let fraction = CGFloat(configuration.fractionCompleted ?? 1.0)
-            Rectangle()
-                .fill(Color.black) // 在 mask 中僅作為不透明度通道揭露文字，不帶任何外顯顏色
-                .frame(width: max(0, min(geo.size.width, geo.size.width * fraction)))
-                .frame(maxWidth: .infinity, alignment: alignment)
-        }
-    }
-}
