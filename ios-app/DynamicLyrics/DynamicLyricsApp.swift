@@ -32,6 +32,14 @@ struct ContentView: View {
     @State private var lastPushedIsPlaying: Bool?
     @State private var loadedTrackUri: String?
 
+    private let playlist = [
+        ("一路向北", "周杰倫"),
+        ("夜曲", "周杰倫"),
+        ("晴天", "周杰倫"),
+        ("稻香", "周杰倫")
+    ]
+    @State private var playlistIndex: Int = 0
+
     private let themeOrange = Color(red: 1.0, green: 0.48, blue: 0.12)
 
     var body: some View {
@@ -111,25 +119,37 @@ struct ContentView: View {
                 .background(Color(.tertiarySystemBackground))
                 .cornerRadius(14)
 
-                // 控制按鈕
+                // 核心播放控制列：上一首、播放/暫停、下一首
                 VStack(spacing: 12) {
-                    Button(action: toggleSimulation) {
-                        HStack {
-                            Image(systemName: isSimulating ? "stop.fill" : "play.fill")
-                            Text(isSimulating ? "停止播放與靈動歌詞" : "開始播放並啟動靈動歌詞")
+                    HStack(spacing: 40) {
+                        Button(action: playPrevious) {
+                            Image(systemName: "backward.fill")
+                                .font(.system(size: 26))
+                                .foregroundColor(.primary)
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(isSimulating ? Color.red : themeOrange)
-                        .foregroundColor(.white)
-                        .cornerRadius(10)
-                        .font(.headline)
-                    }
 
-                    Text("提示：專輯封面會同步呈現在 CarPlay 車機儀表板小工具左上方。")
-                        .font(.caption2)
-                        .foregroundColor(.gray)
+                        Button(action: toggleSimulation) {
+                            Image(systemName: isSimulating ? "pause.circle.fill" : "play.circle.fill")
+                                .font(.system(size: 64))
+                                .foregroundColor(themeOrange)
+                        }
+
+                        Button(action: playNext) {
+                            Image(systemName: "forward.fill")
+                                .font(.system(size: 26))
+                                .foregroundColor(.primary)
+                        }
+                    }
+                    .padding(.vertical, 4)
+
+                    Text(isSimulating ? "播放中：靈動歌詞與動態島持續同步" : "已暫停：點選播放啟動靈動歌詞")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(Color(.secondarySystemBackground))
+                .cornerRadius(14)
 
                 Spacer()
             }
@@ -142,6 +162,22 @@ struct ContentView: View {
         .onReceive(SpotifyRemoteManager.shared.$currentState.receive(on: RunLoop.main)) { state in
             onPlaybackTick(state)
         }
+    }
+
+    private func playPrevious() {
+        playlistIndex = (playlistIndex - 1 + playlist.count) % playlist.count
+        let song = playlist[playlistIndex]
+        trackName = song.0
+        artistName = song.1
+        startSimulation()
+    }
+
+    private func playNext() {
+        playlistIndex = (playlistIndex + 1) % playlist.count
+        let song = playlist[playlistIndex]
+        trackName = song.0
+        artistName = song.1
+        startSimulation()
     }
 
     private func toggleSimulation() {

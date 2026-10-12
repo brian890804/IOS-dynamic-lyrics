@@ -153,12 +153,10 @@
 
     /* 4 行平滑視窗 (Apple Music 滑順體驗，無閃爍瞬跳) */
     .lyrics-viewport {
-      height: 230px;
+      height: 220px;
       overflow: hidden;
       position: relative;
       margin: 4px 0;
-      mask-image: linear-gradient(to bottom, transparent 0%, black 12%, black 88%, transparent 100%);
-      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 12%, black 88%, transparent 100%);
     }
     .lyrics-scroll-track {
       display: flex;
@@ -168,18 +166,18 @@
       will-change: transform;
     }
     .lyric-item {
-      min-height: 32px;
-      line-height: 32px;
-      font-size: 14px;
-      color: rgba(255, 255, 255, 0.28);
+      position: relative;
+      min-height: 34px;
+      line-height: 34px;
+      font-size: 15px;
+      color: rgba(255, 255, 255, 0.45); /* 清楚可見的柔白，絕非全黑 */
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
       width: 100%;
-      transition: font-size 0.45s cubic-bezier(0.2, 0.9, 0.3, 1),
-                  color 0.45s ease,
-                  opacity 0.45s ease,
-                  line-height 0.45s cubic-bezier(0.2, 0.9, 0.3, 1);
+      transition: font-size 0.38s cubic-bezier(0.2, 0.9, 0.3, 1),
+                  color 0.38s ease,
+                  line-height 0.38s cubic-bezier(0.2, 0.9, 0.3, 1);
       background: transparent !important;
       box-sizing: border-box;
       padding: 2px 0;
@@ -188,41 +186,90 @@
     .lyric-item.is-prev {
       font-size: 15px;
       font-weight: 500;
-      color: rgba(255, 255, 255, 0.35);
+      color: rgba(255, 255, 255, 0.4);
       line-height: 34px;
-      opacity: 0.6;
     }
-    /* 當下焦點演唱行 (第 2 行：24px 滿版、純文字染色、絕無背景區塊填色) */
+    /* 當下焦點演唱行 (第 2 行：24px 滿版、超大粗體、純白底色保證清晰絕對可見) */
     .lyric-item.is-current {
       font-size: 24px;
       font-weight: 900;
       line-height: 48px;
-      opacity: 1;
-      /* 關鍵要求：純文字漸層染色，絕無背景色塊填滿 */
-      background: linear-gradient(90deg, #ff7a1f var(--progress, 0%), #ffffff var(--progress, 0%));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-color: transparent !important;
+      color: #ffffff !important; /* 永遠是純亮白底色，絕不變黑！ */
+    }
+    /* 動態橘色覆蓋層 (純文字染色，從左到右平滑展開，絕無背景色塊) */
+    .lyric-item .orange-sweep-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      color: #ff7a1f; /* 核心活力橘色！ */
+      overflow: hidden;
+      white-space: nowrap;
+      width: 0%;
+      pointer-events: none;
+      background: transparent !important;
+      font-size: inherit;
+      font-weight: inherit;
+      line-height: inherit;
+      text-shadow: 0 0 10px rgba(255, 122, 31, 0.4);
     }
     /* 下一句即將唱 (第 3 行) */
     .lyric-item.is-next1 {
       font-size: 17px;
       font-weight: 600;
-      color: rgba(255, 255, 255, 0.78);
+      color: rgba(255, 255, 255, 0.88); /* 清晰明亮白 */
       line-height: 36px;
-      opacity: 0.85;
     }
     /* 下下句未來預覽 (第 4 行) */
     .lyric-item.is-next2 {
       font-size: 14px;
       font-weight: 400;
-      color: rgba(255, 255, 255, 0.35);
+      color: rgba(255, 255, 255, 0.45);
       line-height: 32px;
-      opacity: 0.5;
     }
     /* 其他遠端行 */
     .lyric-item.is-far {
-      opacity: 0.15;
+      color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* CarPlay 媒體控制按鈕欄 (上一首、播放/暫停、下一首) */
+    .cp-playback-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      padding-top: 6px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      margin-top: 4px;
+    }
+    .cp-ctrl-btn {
+      background: transparent;
+      border: none;
+      color: #ffffff;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      transition: 0.2s;
+    }
+    .cp-ctrl-btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      transform: scale(1.1);
+    }
+    .cp-ctrl-btn.play-circle {
+      background: var(--accent);
+      color: #000000;
+      font-size: 16px;
+      font-weight: bold;
+      width: 40px;
+      height: 40px;
+    }
+    .cp-ctrl-btn.play-circle:hover {
+      filter: brightness(1.15);
+      transform: scale(1.08);
     }
 
     /* Dynamic Island Simulator (黑橘) */
@@ -284,13 +331,16 @@
       </div>
 
       <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <button class="secondary" onclick="playPreviousSong()">⏮ 上一首</button>
         <button id="playBtn" onclick="togglePlay()">▶ 開始播放</button>
+        <button class="secondary" onclick="playNextSong()">⏭ 下一首</button>
         <button class="secondary" onclick="stepSeconds(-5)">⏪ -5秒</button>
         <button class="secondary" onclick="stepSeconds(5)">⏩ +5秒</button>
         <div class="preset-row" style="margin-top: 0;">
-          <button class="secondary" onclick="switchPreset('一路向北', '周杰倫')">一路向北</button>
-          <button class="secondary" onclick="switchPreset('夜曲', '周杰倫')">夜曲</button>
-          <button class="secondary" onclick="switchPreset('晴天', '周杰倫')">晴天</button>
+          <button class="secondary" onclick="switchPreset(0)">一路向北</button>
+          <button class="secondary" onclick="switchPreset(1)">夜曲</button>
+          <button class="secondary" onclick="switchPreset(2)">晴天</button>
+          <button class="secondary" onclick="switchPreset(3)">稻香</button>
         </div>
       </div>
     </div>
@@ -350,11 +400,21 @@
               </div>
             </div>
 
-            <!-- 4 行滑順視窗 (Apple Music 滑順體驗 + 純文字橘色填色) -->
+            <!-- 4 行滑順視窗 (清晰亮白底字 + 動態橘色覆蓋) -->
             <div class="lyrics-viewport">
               <div class="lyrics-scroll-track" id="lyricsScrollTrack">
-                <!-- 動態注入歌詞元素 -->
+                <div class="lyric-item is-prev"><span class="base-text">⋯⋯ (前奏)</span><span class="orange-sweep-overlay">⋯⋯ (前奏)</span></div>
+                <div class="lyric-item is-current"><span class="base-text">後視鏡裏的世界 越來越遠的道別</span><span class="orange-sweep-overlay">後視鏡裏的世界 越來越遠的道別</span></div>
+                <div class="lyric-item is-next1"><span class="base-text">你轉身向背 側臉還是很美</span><span class="orange-sweep-overlay">你轉身向背 側臉還是很美</span></div>
+                <div class="lyric-item is-next2"><span class="base-text">我用眼光去追 竟聽見你的淚</span><span class="orange-sweep-overlay">我用眼光去追 竟聽見你的淚</span></div>
               </div>
+            </div>
+
+            <!-- CarPlay 媒體控制按鈕：上一首、播放/暫停、下一首 -->
+            <div class="cp-playback-bar">
+              <button class="cp-ctrl-btn" onclick="playPreviousSong()" title="上一首">⏮</button>
+              <button class="cp-ctrl-btn play-circle" id="cpPlayBtn" onclick="togglePlay()" title="播放/暫停">▶</button>
+              <button class="cp-ctrl-btn" onclick="playNextSong()" title="下一首">⏭</button>
             </div>
           </div>
         </div>
@@ -436,23 +496,54 @@
       }
     }
 
+    const playlist = [
+      { track: "一路向北", artist: "周杰倫" },
+      { track: "夜曲", artist: "周杰倫" },
+      { track: "晴天", artist: "周杰倫" },
+      { track: "稻香", artist: "周杰倫" }
+    ];
+    let currentPlaylistIdx = 0;
+
+    function playPreviousSong() {
+      currentPlaylistIdx = (currentPlaylistIdx - 1 + playlist.length) % playlist.length;
+      switchPreset(currentPlaylistIdx);
+    }
+
+    function playNextSong() {
+      currentPlaylistIdx = (currentPlaylistIdx + 1) % playlist.length;
+      switchPreset(currentPlaylistIdx);
+    }
+
+    function switchPreset(idx) {
+      if (typeof idx === 'number') {
+        currentPlaylistIdx = idx;
+        const song = playlist[idx];
+        document.getElementById('trackInput').value = song.track;
+        document.getElementById('artistInput').value = song.artist;
+      }
+      currentProgressMs = 0;
+      loadSong().then(() => {
+        if (!isPlaying) startPlayback();
+      });
+    }
+
     function renderLyricsTrack() {
       const track = document.getElementById('lyricsScrollTrack');
       if (!track) return;
       track.innerHTML = '';
 
-      // 前奏行
+      // 前奏行 (底層亮白 + 頂層動態橘色覆蓋)
       const introEl = document.createElement('div');
       introEl.className = 'lyric-item is-prev';
       introEl.id = 'lyric-intro';
-      introEl.innerText = '⋯⋯ (前奏)';
+      introEl.innerHTML = `<span class="base-text">⋯⋯ (前奏)</span><span class="orange-sweep-overlay">⋯⋯ (前奏)</span>`;
       track.appendChild(introEl);
 
       currentLyrics.forEach((line, idx) => {
         const item = document.createElement('div');
         item.className = 'lyric-item' + (idx === 0 ? ' is-current' : (idx === 1 ? ' is-next1' : (idx === 2 ? ' is-next2' : ' is-far')));
         item.id = `lyric-${idx}`;
-        item.innerText = line.text;
+        item.innerHTML = `<span class="base-text">${line.text}</span><span class="orange-sweep-overlay">${line.text}</span>`;
         track.appendChild(item);
       });
 
@@ -460,7 +551,7 @@
       const outroEl = document.createElement('div');
       outroEl.className = 'lyric-item is-far';
       outroEl.id = 'lyric-outro';
-      outroEl.innerText = '（尾奏結束）';
+      outroEl.innerHTML = `<span class="base-text">（尾奏結束）</span><span class="orange-sweep-overlay">（尾奏結束）</span>`;
       track.appendChild(outroEl);
     }
 
@@ -501,13 +592,6 @@
       }
     }
 
-    function switchPreset(track, artist) {
-      document.getElementById('trackInput').value = track;
-      document.getElementById('artistInput').value = artist;
-      currentProgressMs = 0;
-      loadSong();
-    }
-
     function update4Lines(progressMs, isSeeking = false) {
       if (!currentLyrics || currentLyrics.length === 0) return;
 
@@ -545,6 +629,8 @@
           const el = document.getElementById(`lyric-${i}`);
           if (!el) continue;
 
+          const sweepEl = el.querySelector('.orange-sweep-overlay');
+
           if (i === currentIndex) {
             el.className = 'lyric-item is-current';
             const txt = currentLyrics[i].text;
@@ -562,22 +648,22 @@
             el.className = 'lyric-item is-prev';
             el.style.fontSize = '15px';
             el.style.lineHeight = '34px';
-            el.style.setProperty('--progress', '100%');
+            if (sweepEl) sweepEl.style.width = '0%';
           } else if (i === currentIndex + 1) {
             el.className = 'lyric-item is-next1';
             el.style.fontSize = '17px';
             el.style.lineHeight = '36px';
-            el.style.setProperty('--progress', '0%');
+            if (sweepEl) sweepEl.style.width = '0%';
           } else if (i === currentIndex + 2) {
             el.className = 'lyric-item is-next2';
             el.style.fontSize = '14px';
             el.style.lineHeight = '32px';
-            el.style.setProperty('--progress', '0%');
+            if (sweepEl) sweepEl.style.width = '0%';
           } else {
             el.className = 'lyric-item is-far';
             el.style.fontSize = '14px';
             el.style.lineHeight = '30px';
-            el.style.setProperty('--progress', '0%');
+            if (sweepEl) sweepEl.style.width = '0%';
           }
         }
 
@@ -599,7 +685,7 @@
         log(`[CarPlay 焦點行] ➔ "${currText}"`);
       }
 
-      // 純文字橘色填滿進度 (絕無背景區塊填滿)
+      // 純文字動態橘色填滿：從左到右平滑展開 (width: 0% -> 100%)
       if (currentIndex >= 0 && currentIndex < currentLyrics.length) {
         const currentEl = document.getElementById(`lyric-${currentIndex}`);
         if (currentEl) {
@@ -609,7 +695,10 @@
           if (progressMs >= startMs && endMs > startMs) {
             percent = Math.min(100, Math.max(0, ((progressMs - startMs) / (endMs - startMs)) * 100));
           }
-          currentEl.style.setProperty('--progress', `${percent.toFixed(1)}%`);
+          const sweepEl = currentEl.querySelector('.orange-sweep-overlay');
+          if (sweepEl) {
+            sweepEl.style.width = percent.toFixed(1) + '%';
+          }
         }
       }
     }
@@ -629,6 +718,8 @@
     function startPlayback() {
       isPlaying = true;
       document.getElementById('playBtn').innerText = '⏸ 暫停播放';
+      const cpBtn = document.getElementById('cpPlayBtn');
+      if (cpBtn) cpBtn.innerText = '⏸';
 
       const step = 50;
       timer = setInterval(() => {
@@ -646,6 +737,8 @@
     function pausePlayback() {
       isPlaying = false;
       document.getElementById('playBtn').innerText = '▶ 開始播放';
+      const cpBtn = document.getElementById('cpPlayBtn');
+      if (cpBtn) cpBtn.innerText = '▶';
       clearInterval(timer);
       timer = null;
     }
