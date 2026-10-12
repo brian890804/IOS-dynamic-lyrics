@@ -1,88 +1,57 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
   <defs>
-    <!-- Background Gradient: Pure Obsidian Black -->
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0a0b0d"/>
-      <stop offset="50%" stop-color="#121316"/>
-      <stop offset="100%" stop-color="#050507"/>
+    <radialGradient id="bgGlow" cx="50%" cy="50%" r="65%">
+      <stop offset="0%" stop-color="#181410"/>
+      <stop offset="70%" stop-color="#090a0d"/>
+      <stop offset="100%" stop-color="#040405"/>
+    </radialGradient>
+    <linearGradient id="neonOrange" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffb05c"/>
+      <stop offset="50%" stop-color="#ff7a1f"/>
+      <stop offset="100%" stop-color="#e05300"/>
     </linearGradient>
-
-    <!-- Vivid Amber Orange Gradient -->
-    <linearGradient id="neonOrange" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ff9d42"/>
-      <stop offset="100%" stop-color="#ff7a1f"/>
+    <linearGradient id="pillGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#241e1a"/>
+      <stop offset="50%" stop-color="#3a281c"/>
+      <stop offset="100%" stop-color="#241e1a"/>
     </linearGradient>
-
-    <!-- Deep Warm Orange Gradient -->
-    <linearGradient id="deepOrange" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ff7a1f"/>
-      <stop offset="100%" stop-color="#d45200"/>
-    </linearGradient>
-
-    <!-- Dynamic Island Pill Gradient -->
-    <linearGradient id="islandGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#15161b"/>
-      <stop offset="50%" stop-color="#24262e"/>
-      <stop offset="100%" stop-color="#15161b"/>
-    </linearGradient>
-
-    <!-- Filter for Glow Effect -->
-    <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="16" result="blur" />
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="22" result="blur" />
       <feMerge>
         <feMergeNode in="blur" />
         <feMergeNode in="SourceGraphic" />
       </feMerge>
     </filter>
-
-    <filter id="strongGlow" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur stdDeviation="30" result="blur2" />
-      <feMerge>
-        <feMergeNode in="blur2" />
-        <feMergeNode in="SourceGraphic" />
-      </feMerge>
-    </filter>
   </defs>
-
-  <!-- iOS App Icon Squircle Canvas -->
-  <rect width="1024" height="1024" rx="224" fill="url(#bgGrad)"/>
-  <rect width="1020" height="1020" x="2" y="2" rx="222" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4"/>
-
-  <!-- Futuristic Ambient Sound Ring (Car Dashboard Gauge) in Subtle Orange -->
-  <circle cx="512" cy="512" r="380" fill="none" stroke="rgba(255, 122, 31, 0.12)" stroke-width="16" stroke-dasharray="8 16"/>
-  <circle cx="512" cy="512" r="330" fill="none" stroke="rgba(255, 157, 66, 0.18)" stroke-width="4" stroke-dasharray="60 30"/>
-
-  <!-- Dynamic Island Pill Container -->
-  <rect x="252" y="160" width="520" height="110" rx="55" fill="url(#islandGrad)" stroke="rgba(255, 122, 31, 0.3)" stroke-width="3" filter="url(#neonGlow)"/>
+  <rect width="1024" height="1024" fill="url(#bgGlow)"/>
   
-  <!-- Dynamic Island Micro Visualizers in Black & Orange -->
-  <circle cx="310" cy="215" r="16" fill="#ff7a1f"/>
-  <rect x="360" y="200" width="300" height="30" rx="15" fill="rgba(255,255,255,0.06)"/>
-  <rect x="375" y="206" width="180" height="18" rx="9" fill="url(#neonOrange)"/>
-  <circle cx="710" cy="215" r="14" fill="#ff9d42"/>
+  <circle cx="512" cy="512" r="380" fill="none" stroke="rgba(255, 122, 31, 0.12)" stroke-width="12" stroke-dasharray="16 24"/>
+  <circle cx="512" cy="512" r="320" fill="none" stroke="rgba(255, 122, 31, 0.08)" stroke-width="4"/>
 
-  <!-- Modern 3D/Cartoon Music Note with Vibrant Amber Orange Aura -->
-  <g filter="url(#strongGlow)">
-    <path d="M570,360 L730,320 C745,316 760,328 760,344 L760,620 C760,670 710,710 650,710 C590,710 540,665 540,615 C540,565 590,525 650,525 C665,525 680,530 690,536 L690,410 L570,440 L570,680 C570,730 520,770 460,770 C400,770 350,725 350,675 C350,625 400,585 460,585 C475,585 490,590 500,596 L500,380 C500,365 515,352 530,350 Z" 
-          fill="url(#neonOrange)"/>
+  <rect x="332" y="240" width="360" height="76" rx="38" fill="url(#pillGrad)" stroke="rgba(255, 122, 31, 0.35)" stroke-width="3" filter="url(#glow)"/>
+  <circle cx="390" cy="278" r="14" fill="#ff7a1f"/>
+  <rect x="430" y="271" width="180" height="14" rx="7" fill="rgba(255, 255, 255, 0.2)"/>
+  <rect x="430" y="271" width="110" height="14" rx="7" fill="url(#neonOrange)"/>
+  <circle cx="634" cy="278" r="10" fill="#ff9d42"/>
+
+  <g filter="url(#glow)">
+    <path d="M440 410 L640 370 C655 367 670 378 670 394 L670 650 C670 690 635 720 590 720 C545 720 510 690 510 650 C510 610 545 580 590 580 C605 580 618 584 628 590 L628 460 L440 495 L440 700 C440 740 405 770 360 770 C315 770 280 740 280 700 C280 660 315 630 360 630 C375 630 388 634 398 640 L398 435 C398 420 415 407 440 410 Z" fill="url(#neonOrange)"/>
   </g>
 
-  <!-- High-tech Soundwave Bars in Black & Orange -->
-  <g transform="translate(262, 820)">
-    <rect x="0" y="20" width="24" height="40" rx="12" fill="#d45200" opacity="0.6"/>
-    <rect x="42" y="0" width="24" height="80" rx="12" fill="url(#neonOrange)"/>
-    <rect x="84" y="25" width="24" height="50" rx="12" fill="#ff7a1f"/>
-    <rect x="126" y="10" width="24" height="70" rx="12" fill="url(#deepOrange)"/>
-    <rect x="168" y="30" width="24" height="40" rx="12" fill="#ff9d42" opacity="0.8"/>
-    <rect x="210" y="5" width="24" height="80" rx="12" fill="url(#neonOrange)"/>
-    <rect x="252" y="20" width="24" height="60" rx="12" fill="#d45200"/>
-    <rect x="294" y="0" width="24" height="90" rx="12" fill="#ff7a1f"/>
-    <rect x="336" y="28" width="24" height="44" rx="12" fill="url(#neonOrange)"/>
-    <rect x="378" y="12" width="24" height="68" rx="12" fill="#d45200"/>
-    <rect x="420" y="30" width="24" height="40" rx="12" fill="#ff7a1f"/>
-    <rect x="462" y="15" width="24" height="60" rx="12" fill="url(#deepOrange)"/>
+  <g transform="translate(182, 820)" fill="url(#neonOrange)">
+    <rect x="0" y="30" width="22" height="30" rx="11" opacity="0.4"/>
+    <rect x="44" y="15" width="22" height="60" rx="11" opacity="0.6"/>
+    <rect x="88" y="0" width="22" height="90" rx="11" opacity="0.8"/>
+    <rect x="132" y="20" width="22" height="50" rx="11" opacity="0.7"/>
+    <rect x="176" y="5" width="22" height="80" rx="11" opacity="0.9"/>
+    <rect x="220" y="25" width="22" height="40" rx="11"/>
+    <rect x="264" y="0" width="22" height="90" rx="11"/>
+    <rect x="308" y="15" width="22" height="60" rx="11"/>
+    <rect x="352" y="30" width="22" height="30" rx="11"/>
+    <rect x="396" y="5" width="22" height="80" rx="11"/>
+    <rect x="440" y="20" width="22" height="50" rx="11" opacity="0.9"/>
+    <rect x="484" y="0" width="22" height="90" rx="11" opacity="0.8"/>
+    <rect x="528" y="15" width="22" height="60" rx="11" opacity="0.6"/>
+    <rect x="572" y="30" width="22" height="30" rx="11" opacity="0.4"/>
   </g>
-
-  <!-- Soft Highlights -->
-  <ellipse cx="512" cy="180" rx="300" ry="100" fill="white" opacity="0.03"/>
 </svg>

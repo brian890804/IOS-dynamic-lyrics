@@ -25,6 +25,12 @@ targets:
         NSSupportsLiveActivitiesFrequentUpdates: true
         UIBackgroundModes:
           - audio
+        UILaunchScreen: {}
+        UIRequiresFullScreen: true
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
     dependencies:
       - target: LyricWidget
 

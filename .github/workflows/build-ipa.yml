@@ -44,14 +44,14 @@ jobs:
           fi
           grep "objectVersion" DynamicLyrics.xcodeproj/project.pbxproj
 
-      - name: Build and Archive
+      - name: Build App (Unsigned)
         run: |
-          xcodebuild archive \
+          xcodebuild build \
             -project DynamicLyrics.xcodeproj \
             -scheme DynamicLyrics \
             -configuration Release \
-            -archivePath build/DynamicLyrics.xcarchive \
             -destination "generic/platform=iOS" \
+            -derivedDataPath build/DerivedData \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
@@ -60,7 +60,12 @@ jobs:
       - name: Package into IPA (Unsigned)
         run: |
           mkdir -p build/Payload
-          cp -R build/DynamicLyrics.xcarchive/Products/Applications/DynamicLyrics.app build/Payload/
+          APP_PATH=$(find build/DerivedData/Build/Products/Release-iphoneos -name "DynamicLyrics.app" -type d | head -n 1)
+          if [ -z "$APP_PATH" ]; then
+            APP_PATH=$(find build/DerivedData -name "DynamicLyrics.app" -type d | head -n 1)
+          fi
+          echo "Found compiled app at: $APP_PATH"
+          cp -R "$APP_PATH" build/Payload/
           cd build
           zip -r DynamicLyrics.ipa Payload
           cd ..
