@@ -189,28 +189,38 @@
       color: rgba(255, 255, 255, 0.4);
       line-height: 34px;
     }
-    /* 當下焦點演唱行 (第 2 行：24px 滿版、超大粗體、純白底色保證清晰絕對可見) */
+    /* 當下焦點演唱行 (第 2 行：24px 滿版、超大粗體) */
     .lyric-item.is-current {
       font-size: 24px;
       font-weight: 900;
       line-height: 48px;
-      color: #ffffff !important; /* 永遠是純亮白底色，絕不變黑！ */
     }
-    /* 動態橘色覆蓋層 (純文字染色，從左到右平滑展開，絕無背景色塊) */
+    /* 未唱部分：純白/柔白，透過 clip-path 只在還沒唱的地方顯示 */
+    .lyric-item .base-text {
+      display: inline-block;
+      width: 100%;
+      color: rgba(255, 255, 255, 0.7);
+      clip-path: inset(0 0 0 var(--sweep, 0%));
+    }
+    .lyric-item.is-current .base-text {
+      color: #ffffff;
+      clip-path: inset(0 0 0 var(--sweep, 0%));
+    }
+    /* 唱過的地方：100% 純淨活力橘色，底層白字完全被剪除，絕無任何反白或透白！ */
     .lyric-item .orange-sweep-overlay {
       position: absolute;
       top: 0;
       left: 0;
-      color: #ff7a1f; /* 核心活力橘色！ */
+      width: 100%;
+      color: #ff7a1f; /* 純粹純橘色，零白色干擾 */
       overflow: hidden;
       white-space: nowrap;
-      width: 0%;
       pointer-events: none;
       background: transparent !important;
       font-size: inherit;
       font-weight: inherit;
       line-height: inherit;
-      text-shadow: 0 0 10px rgba(255, 122, 31, 0.4);
+      clip-path: inset(0 calc(100% - var(--sweep, 0%)) 0 0);
     }
     /* 下一句即將唱 (第 3 行) */
     .lyric-item.is-next1 {
@@ -648,22 +658,22 @@
             el.className = 'lyric-item is-prev';
             el.style.fontSize = '15px';
             el.style.lineHeight = '34px';
-            if (sweepEl) sweepEl.style.width = '0%';
+            el.style.setProperty('--sweep', '0%');
           } else if (i === currentIndex + 1) {
             el.className = 'lyric-item is-next1';
             el.style.fontSize = '17px';
             el.style.lineHeight = '36px';
-            if (sweepEl) sweepEl.style.width = '0%';
+            el.style.setProperty('--sweep', '0%');
           } else if (i === currentIndex + 2) {
             el.className = 'lyric-item is-next2';
             el.style.fontSize = '14px';
             el.style.lineHeight = '32px';
-            if (sweepEl) sweepEl.style.width = '0%';
+            el.style.setProperty('--sweep', '0%');
           } else {
             el.className = 'lyric-item is-far';
             el.style.fontSize = '14px';
             el.style.lineHeight = '30px';
-            if (sweepEl) sweepEl.style.width = '0%';
+            el.style.setProperty('--sweep', '0%');
           }
         }
 
@@ -695,10 +705,7 @@
           if (progressMs >= startMs && endMs > startMs) {
             percent = Math.min(100, Math.max(0, ((progressMs - startMs) / (endMs - startMs)) * 100));
           }
-          const sweepEl = currentEl.querySelector('.orange-sweep-overlay');
-          if (sweepEl) {
-            sweepEl.style.width = percent.toFixed(1) + '%';
-          }
+          currentEl.style.setProperty('--sweep', `${percent.toFixed(1)}%`);
         }
       }
     }
