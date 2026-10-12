@@ -15,6 +15,7 @@ targets:
     type: application
     platform: iOS
     deploymentTarget: "17.0"
+    bundleId: com.example.DynamicLyrics
     sources:
       - path: ios-app/DynamicLyrics
     info:
@@ -31,6 +32,7 @@ targets:
     type: app-extension
     platform: iOS
     deploymentTarget: "17.0"
+    bundleId: com.example.DynamicLyrics.LyricWidget
     sources:
       - path: ios-app/LyricWidget
       - path: ios-app/DynamicLyrics/LyricAttributes.swift
