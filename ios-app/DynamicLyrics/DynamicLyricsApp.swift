@@ -18,10 +18,10 @@ struct ContentView: View {
     @StateObject private var liveActivityManager = LiveActivityManager.shared
     @State private var trackName: String = "一路向北"
     @State private var artistName: String = "周杰倫"
+    @State private var albumArtUrl: String? = nil
     @State private var isSimulating: Bool = false
     @State private var lyricLines: [LyricLine] = []
     
-    // 4 行歌詞預覽
     @State private var prevLyric: String = ""
     @State private var currentLyric: String = "準備就緒"
     @State private var nextLyric1: String = ""
@@ -32,12 +32,14 @@ struct ContentView: View {
     @State private var lastPushedIsPlaying: Bool?
     @State private var loadedTrackUri: String?
 
+    private let themeOrange = Color(red: 1.0, green: 0.48, blue: 0.12)
+
     var body: some View {
         NavigationView {
-            VStack(spacing: 24) {
-                // 音樂輸入區域
+            VStack(spacing: 20) {
+                // 音樂設定
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("歌曲設定 (支援 Spotify / Lrclib)")
+                    Text("歌曲設定 (自動抓取高畫質專輯封面)")
                         .font(.caption)
                         .foregroundColor(.gray)
 
@@ -52,53 +54,62 @@ struct ContentView: View {
                 .background(Color(.secondarySystemBackground))
                 .cornerRadius(12)
 
-                // 4 行歌詞預覽卡片 (比照 CarPlay 顯示效果)
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack {
-                        Text(trackName)
-                            .font(.caption)
-                            .bold()
-                            .foregroundColor(.green)
-                        Text("• " + artistName)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                // 現代感預覽卡片
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 10) {
+                        if let artUrl = albumArtUrl, let url = URL(string: artUrl) {
+                            AsyncImage(url: url) { image in
+                                image.resizable().aspectRatio(contentMode: .fill)
+                            } placeholder: {
+                                Color.gray.opacity(0.3)
+                            }
+                            .frame(width: 44, height: 44)
+                            .cornerRadius(8)
+                        } else {
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(themeOrange.opacity(0.3))
+                                .frame(width: 44, height: 44)
+                                .overlay(Image(systemName: "music.note").foregroundColor(themeOrange))
+                        }
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(trackName)
+                                .font(.headline)
+                                .bold()
+                                .foregroundColor(themeOrange)
+                            Text(artistName)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                         Spacer()
-                        Text("CarPlay 4 行即時預覽")
-                            .font(.caption2)
-                            .foregroundColor(.gray)
                     }
 
-                    VStack(alignment: .leading, spacing: 4) {
-                        // 第 1 條：之前唱過的
+                    VStack(alignment: .leading, spacing: 6) {
                         Text(prevLyric.isEmpty ? " " : prevLyric)
-                            .font(.system(size: 12))
+                            .font(.system(size: 14))
                             .foregroundColor(.secondary.opacity(0.5))
                             .lineLimit(1)
 
-                        // 第 2 條：當下正在唱的
                         Text(currentLyric)
-                            .font(.system(size: 17, weight: .heavy, design: .rounded))
-                            .foregroundColor(.green)
+                            .font(.system(size: 20, weight: .heavy, design: .rounded))
+                            .foregroundColor(themeOrange)
                             .lineLimit(1)
-                            .id("curr-\(currentLyric)")
+                            .minimumScaleFactor(0.7)
 
-                        // 第 3 條：下一句
                         Text(nextLyric1.isEmpty ? " " : nextLyric1)
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(.primary)
                             .lineLimit(1)
 
-                        // 第 4 條：下下句
                         Text(nextLyric2.isEmpty ? " " : nextLyric2)
-                            .font(.system(size: 11))
+                            .font(.system(size: 13))
                             .foregroundColor(.secondary.opacity(0.4))
                             .lineLimit(1)
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
                 .background(Color(.tertiarySystemBackground))
-                .cornerRadius(12)
+                .cornerRadius(14)
 
                 // 控制按鈕
                 VStack(spacing: 12) {
@@ -109,16 +120,15 @@ struct ContentView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(isSimulating ? Color.red : Color.green)
+                        .background(isSimulating ? Color.red : themeOrange)
                         .foregroundColor(.white)
                         .cornerRadius(10)
                         .font(.headline)
                     }
 
-                    Text("提示：開啟播放後將啟動背景保活與 4 行卡拉OK逐字渲染，CarPlay 與動態島將自動同步。")
+                    Text("提示：專輯封面會同步呈現在 CarPlay 車機儀表板小工具左上方。")
                         .font(.caption2)
                         .foregroundColor(.gray)
-                        .multilineTextAlignment(.center)
                 }
 
                 Spacer()
@@ -160,7 +170,7 @@ struct ContentView: View {
         trackName = state.trackName
         artistName = state.artistName
         lyricLines = []
-        currentLyric = "載入歌詞中…"
+        currentLyric = "載入中…"
         nextLyric1 = ""
         nextLyric2 = ""
         prevLyric = ""
@@ -168,6 +178,11 @@ struct ContentView: View {
         loadedTrackUri = nil
 
         loadTask = Task {
+            // 同步獲取專輯封面
+            let artUrl = await ArtworkService.shared.fetchArtworkUrl(trackName: state.trackName, artistName: state.artistName)
+            if Task.isCancelled { return }
+            self.albumArtUrl = artUrl
+
             let durationSec = state.durationMs > 0 ? Double(state.durationMs) / 1000 : nil
             let lines = (try? await LyricService.shared.fetchLyrics(
                 trackName: state.trackName, artistName: state.artistName, durationSec: durationSec)) ?? []
@@ -187,6 +202,7 @@ struct ContentView: View {
                 songId: state.trackUri,
                 trackName: state.trackName,
                 artistName: state.artistName,
+                albumArtUrl: artUrl,
                 prevLyric: match.prevText,
                 currentLyric: match.currentText,
                 nextLyric1: match.nextText1,
@@ -216,6 +232,7 @@ struct ContentView: View {
         LiveActivityManager.shared.updateLyric(
             trackName: state.trackName,
             artistName: state.artistName,
+            albumArtUrl: albumArtUrl,
             prevLyric: match.prevText,
             currentLyric: match.currentText,
             nextLyric1: match.nextText1,

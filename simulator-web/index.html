@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>靈動歌詞 (Dynamic Lyrics) - 黑橘滿版 4 行歌詞模擬器</title>
+  <title>靈動歌詞 (Dynamic Lyrics) - 黑橘現代感專輯封面版</title>
   <style>
     :root {
       --bg: #090a0c;
@@ -124,12 +124,12 @@
       border: 3px solid #ff3b30; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
     }
 
-    /* 【核心黑橘滿版 4 行歌詞卡片】 */
+    /* 【核心黑橘現代感 4 行歌詞卡片】 */
     .carplay-lyrics-4lines-card {
-      background: #08080a; /* 純深曜石黑背景，無多餘變色色塊 */
+      background: #08080a;
       border: 1px solid rgba(255, 122, 31, 0.25);
       border-radius: 18px;
-      padding: 18px 20px;
+      padding: 16px 18px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -137,28 +137,33 @@
       overflow: hidden;
     }
 
-    /* 頂部簡潔曲目資訊 (刪除右上角標籤，空間完全給歌詞) */
+    /* 頂部現代感歌曲列：包含高畫質圓角專輯封面 */
     .cp-widget-header {
-      display: flex; align-items: center; justify-content: space-between;
+      display: flex; align-items: center; gap: 10px;
       padding-bottom: 4px;
     }
-    .cp-song-info { display: flex; align-items: center; gap: 8px; }
-    .cp-song-title { font-size: 13px; font-weight: bold; color: var(--accent); }
-    .cp-song-artist { font-size: 12px; color: rgba(255,255,255,0.45); }
+    .album-art-thumb {
+      width: 38px; height: 38px; border-radius: 8px; object-fit: cover;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .cp-song-info { display: flex; flex-direction: column; gap: 1px; }
+    .cp-song-title { font-size: 14px; font-weight: bold; color: var(--accent); }
+    .cp-song-artist { font-size: 11px; color: rgba(255,255,255,0.45); }
 
-    /* 4 行歌詞主體：加大字體滿版呈現 */
+    /* 4 行歌詞主體：字體極大、滿版、自動換行自適應 */
     .four-lines-container {
       display: flex;
       flex-direction: column;
       gap: 10px;
-      margin: 10px 0;
+      margin: 8px 0;
       flex: 1;
       justify-content: center;
     }
 
-    /* 第 1 條：之前唱過的 (大字號 14px、微淡) */
+    /* 第 1 條：之前唱過的 (大字 15px、微淡灰) */
     .line-prev {
-      font-size: 14px;
+      font-size: 15px;
       font-weight: 500;
       color: rgba(255, 255, 255, 0.32);
       white-space: nowrap;
@@ -166,12 +171,12 @@
       text-overflow: ellipsis;
     }
 
-    /* 第 2 條：當下演唱主行 (超大字 20px、極致加粗、純文字逐字橘色染色、無背景色塊) */
+    /* 第 2 條：當下演唱主行 (24px 滿版超大字體、極致加粗、純文字逐字橘色染色、自動彈性縮放) */
     .line-current-wrap {
       position: relative;
-      font-size: 20px;
+      font-size: 24px;
       font-weight: 900;
-      line-height: 1.25;
+      line-height: 1.2;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -193,19 +198,19 @@
       pointer-events: none;
     }
 
-    /* 第 3 條：下一句即將唱 (大字號 16px、明亮白) */
+    /* 第 3 條：下一句即將唱 (大字 17px、明亮白) */
     .line-next1 {
-      font-size: 16px;
+      font-size: 17px;
       font-weight: 600;
-      color: rgba(255, 255, 255, 0.75);
+      color: rgba(255, 255, 255, 0.78);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
-    /* 第 4 條：下下句未來預覽 (13px、微淡) */
+    /* 第 4 條：下下句未來預覽 (14px、微淡) */
     .line-next2 {
-      font-size: 13px;
+      font-size: 14px;
       color: rgba(255, 255, 255, 0.35);
       white-space: nowrap;
       overflow: hidden;
@@ -250,8 +255,8 @@
       <div style="display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 4px;">
         <img src="icon.jpg" alt="Icon" style="width: 52px; height: 52px; border-radius: 13px; box-shadow: 0 4px 15px rgba(255, 122, 31, 0.35); border: 1px solid rgba(255,255,255,0.1);">
         <div style="text-align: left;">
-          <h1 style="font-size: 24px; color: var(--accent);">靈動歌詞 (Dynamic Lyrics) 黑橘滿版</h1>
-          <p style="font-size: 13px; color: var(--text-muted);">黑橘純文字逐字染色 • 無背景變色框 • 4 行滿版放大呈現</p>
+          <h1 style="font-size: 24px; color: var(--accent);">靈動歌詞 (Dynamic Lyrics) 現代感專輯版</h1>
+          <p style="font-size: 13px; color: var(--text-muted);">黑橘滿版 • 24px 自適應防截斷大字 • 高畫質專輯封面</p>
         </div>
       </div>
     </header>
@@ -261,7 +266,7 @@
       <div class="input-row">
         <input type="text" id="trackInput" value="一路向北" placeholder="歌名">
         <input type="text" id="artistInput" value="周杰倫" placeholder="歌手">
-        <button id="loadBtn" onclick="loadSong()">載入歌詞</button>
+        <button id="loadBtn" onclick="loadSong()">載入歌詞與封面</button>
       </div>
 
       <div class="slider-row">
@@ -282,15 +287,14 @@
       </div>
     </div>
 
-    <!-- Apple CarPlay 黑橘滿版 4 行歌詞車機畫面 -->
+    <!-- Apple CarPlay 車機畫面 -->
     <div class="carplay-screen-frame">
       <div class="carplay-header-bar">
-        <span>🚗 Apple CarPlay 車機畫面 (黑橘純文字滿版)</span>
-        <span id="carplayClock">09:24</span>
+        <span>🚗 Apple CarPlay 車機畫面 (24px 滿版大字 + 專輯封面)</span>
+        <span id="carplayClock">09:27</span>
       </div>
 
       <div class="carplay-dashboard-body">
-        <!-- 左側 CarPlay Dock -->
         <div class="carplay-sidebar">
           <div class="cp-home-btn">⊞</div>
           <div class="cp-dock-icons">
@@ -308,9 +312,8 @@
           </div>
         </div>
 
-        <!-- 儀表板內容區 -->
         <div class="carplay-content-area">
-          <!-- 左側地圖導航 -->
+          <!-- 左側導航 -->
           <div class="carplay-map-card">
             <div class="map-grid-bg"></div>
             <div class="nav-instruction">
@@ -328,27 +331,25 @@
             </div>
           </div>
 
-          <!-- 右側：【黑橘滿版 4 行歌詞 Live Activity】 -->
+          <!-- 右側：【黑橘現代感 4 行歌詞卡片】 -->
           <div class="carplay-lyrics-4lines-card">
+            <!-- 頂部歌曲列：專輯封面 + 歌名/歌手 -->
             <div class="cp-widget-header">
+              <img id="albumArtImg" src="https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/f7/9c/16/f79c1629-8da6-573b-e5b5-7f7029a9f6cb/4894859256482.jpg/300x300bb.jpg" class="album-art-thumb" alt="Album Art">
               <div class="cp-song-info">
                 <span class="cp-song-title" id="cpTrack">一路向北</span>
-                <span class="cp-song-artist" id="cpArtist">• 周杰倫</span>
+                <span class="cp-song-artist" id="cpArtist">周杰倫</span>
               </div>
             </div>
 
-            <!-- 4 行純文字滿版 (純字變色，無背景塊) -->
+            <!-- 4 行純文字滿版 (24px 滿版超大字體) -->
             <div class="four-lines-container">
-              <!-- 1. 之前唱過的 -->
               <div class="line-prev" id="line1">⋯⋯ (前奏)</div>
-              <!-- 2. 當下正在唱的主行 (20px 超大字體，文字由左至右純橘色平滑染色) -->
               <div class="line-current-wrap">
                 <div class="karaoke-base" id="line2Base">後視鏡裏的世界 越來越遠的道別</div>
                 <div class="karaoke-fill" id="line2Fill">後視鏡裏的世界 越來越遠的道別</div>
               </div>
-              <!-- 3. 下一句將要唱的 (16px 明亮白) -->
               <div class="line-next1" id="line3">你轉身向背 側臉還是很美</div>
-              <!-- 4. 下下句未來預覽 (13px) -->
               <div class="line-next2" id="line4">我用眼光去追 竟聽見你的淚</div>
             </div>
           </div>
@@ -378,7 +379,7 @@
         <span>⚙️ 即時事件日誌</span>
       </div>
       <div class="console-box" id="logBox">
-        <div class="log-line"><span class="log-time">[Init]</span> 黑橘滿版 4 行歌詞與純文字染色引擎已加載。</div>
+        <div class="log-line"><span class="log-time">[Init]</span> 現代感專輯封面與 24px 自適應滿版歌詞已載入。</div>
       </div>
     </div>
   </div>
@@ -418,10 +419,23 @@
       box.scrollTop = box.scrollHeight;
     }
 
+    // 依據字串長度動態調整字體大小 (長句自動縮小防換行)
+    function adjustFontSize(text) {
+      const el = document.querySelector('.line-current-wrap');
+      if (!el) return;
+      if (text.length > 20) {
+        el.style.fontSize = '18px';
+      } else if (text.length > 15) {
+        el.style.fontSize = '21px';
+      } else {
+        el.style.fontSize = '24px';
+      }
+    }
+
     async function loadSong() {
       const track = document.getElementById('trackInput').value.trim();
       const artist = document.getElementById('artistInput').value.trim();
-      log(`請求歌詞: 【${track}】 - ${artist}...`);
+      log(`請求歌詞與封面: 【${track}】 - ${artist}...`);
 
       try {
         const res = await fetch(`/api/lyrics?track=${encodeURIComponent(track)}&artist=${encodeURIComponent(artist)}`);
@@ -438,8 +452,13 @@
         document.getElementById('progressBar').max = totalDurationMs;
         document.getElementById('durationTimeText').innerText = formatTime(totalDurationMs);
         document.getElementById('cpTrack').innerText = data.trackName;
-        document.getElementById('cpArtist').innerText = `• ${data.artistName}`;
+        document.getElementById('cpArtist').innerText = data.artistName;
         document.getElementById('islandTrack').innerText = data.trackName;
+
+        if (data.artworkUrl) {
+          document.getElementById('albumArtImg').src = data.artworkUrl;
+          log(`🎨 成功載入高解析度專輯封面。`);
+        }
 
         log(`✅ 成功獲取歌詞！共 ${currentLyrics.length} 行時間軸。`);
         update4Lines(currentProgressMs);
@@ -484,6 +503,8 @@
         endMs = (currentIndex + 1 < currentLyrics.length) ? currentLyrics[currentIndex + 1].timeMs : (startMs + 4000);
       }
 
+      adjustFontSize(currText);
+
       document.getElementById('line1').innerText = prevText;
       document.getElementById('line2Base').innerText = currText;
       document.getElementById('line2Fill').innerText = currText;
@@ -491,7 +512,6 @@
       document.getElementById('line4').innerText = next2Text;
       document.getElementById('islandLyric').innerText = currText;
 
-      // 純文字逐字染色百分比
       let percent = 0;
       if (progressMs >= startMs && endMs > startMs) {
         percent = Math.min(100, Math.max(0, ((progressMs - startMs) / (endMs - startMs)) * 100));
