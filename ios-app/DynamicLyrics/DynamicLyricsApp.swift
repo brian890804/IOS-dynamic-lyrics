@@ -283,13 +283,10 @@ struct ContentView: View {
     }
 
     private func remainingLineSec(match: LyricMatch4Lines, progressMs: Int, speed: Double) -> Double {
-        let nextIdx = match.currentIndex + 1
-        let remainingMs: Int
-        if nextIdx >= 0 && nextIdx < lyricLines.count {
-            remainingMs = max(500, lyricLines[nextIdx].timeMs - progressMs)
-        } else {
-            remainingMs = match.currentLineDurationMs
-        }
+        let currentStart = lyricLines.indices.contains(match.currentIndex) ? lyricLines[match.currentIndex].timeMs : progressMs
+        let elapsed = max(0, progressMs - currentStart)
+        let naturalDuration = match.currentLineDurationMs
+        let remainingMs = max(400, naturalDuration - elapsed)
         return Double(remainingMs) / 1000.0 / max(speed, 0.1)
     }
 

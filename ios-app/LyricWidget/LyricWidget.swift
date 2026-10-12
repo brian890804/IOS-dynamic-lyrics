@@ -171,7 +171,7 @@ public struct LyricLiveActivityWidget: Widget {
     }
 }
 
-/// 焦點行：超大字體、純文字染色 (絕不渲染背景色塊)、自適應縮放防超長截斷
+/// 焦點行：超大字體、純文字染色 (絕不渲染背景色塊)、互補遮罩防白邊溢出
 struct KaraokeFocusLine: View {
     let text: String
     let startTime: Date
@@ -180,14 +180,22 @@ struct KaraokeFocusLine: View {
 
     var body: some View {
         ZStack(alignment: .leading) {
-            // 底層亮白字體 (純粹字體像素，背景全透明)
+            // 右側未唱區域：純白色 (動態向右縮減，已唱區域完全不渲染底層白字，絕無毛邊殘影)
             Text(text)
                 .font(.system(size: 24, weight: .heavy, design: .rounded))
                 .foregroundColor(.white)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
+                .mask(alignment: .trailing) {
+                    ProgressView(timerInterval: startTime...endTime, countsDown: true) {
+                        EmptyView()
+                    } currentValueLabel: {
+                        EmptyView()
+                    }
+                    .progressViewStyle(PureTextMaskProgressStyle(alignment: .trailing))
+                }
 
-            // 頂層活力橘染色 (只覆蓋字體輪廓，無任何方塊/容器背景顏色)
+            // 左側已唱區域：純活力橘色 (動態由左向右推進，底層為純黑背景，飽和度極致通透)
             Text(text)
                 .font(.system(size: 24, weight: .heavy, design: .rounded))
                 .foregroundColor(highlightColor)
@@ -199,20 +207,22 @@ struct KaraokeFocusLine: View {
                     } currentValueLabel: {
                         EmptyView()
                     }
-                    .progressViewStyle(PureTextMaskProgressStyle())
+                    .progressViewStyle(PureTextMaskProgressStyle(alignment: .leading))
                 }
         }
     }
 }
 
 struct PureTextMaskProgressStyle: ProgressViewStyle {
+    var alignment: Alignment = .leading
+
     func makeBody(configuration: Configuration) -> some View {
         GeometryReader { geo in
             let fraction = CGFloat(configuration.fractionCompleted ?? 1.0)
             Rectangle()
                 .fill(Color.black) // 在 mask 中僅作為不透明度通道揭露文字，不帶任何外顯顏色
                 .frame(width: max(0, min(geo.size.width, geo.size.width * fraction)))
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: alignment)
         }
     }
 }

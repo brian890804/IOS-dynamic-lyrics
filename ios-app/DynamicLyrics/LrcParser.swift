@@ -109,6 +109,25 @@ public class LrcParser {
         return lines.sorted { $0.timeMs < $1.timeMs }
     }
 
+    /// 根據歌詞字數與兩行時間差計算自然演唱時長 (避免間奏過長導致逐字推進過慢)
+    public static func calculateLineDuration(text: String, gapMs: Int) -> Int {
+        let clean = text.replacingOccurrences(of: "\\s+", with: "", options: .regularExpression)
+        let charCount = max(4, clean.count)
+        // 中文標準流行語速：每字約 320ms ~ 350ms
+        let naturalSingingMs = charCount * 330
+
+        if gapMs > naturalSingingMs + 1000 {
+            // 兩句之間有間奏或過門音樂：以自然演唱時間為主，唱完停留在 100% 亮橘色
+            return min(naturalSingingMs, max(1600, gapMs - 800))
+        } else if gapMs > 1200 {
+            // 正常句間換氣：在下一句前留 200ms 空檔
+            return max(1200, min(naturalSingingMs, gapMs - 200))
+        } else {
+            // 快節奏連續演唱
+            return max(800, Int(Double(gapMs) * 0.9))
+        }
+    }
+
     /// 根據毫秒進度匹配 4 行歌詞：
     /// Line 1: 上一句 (已唱過)
     /// Line 2: 當前句 (正唱中)
@@ -148,12 +167,13 @@ public class LrcParser {
         let next1 = (currentIndex + 1 < lines.count) ? lines[currentIndex + 1].text : "（尾奏結束）"
         let next2 = (currentIndex + 2 < lines.count) ? lines[currentIndex + 2].text : ""
 
-        let durationMs: Int
+        let rawGapMs: Int
         if currentIndex + 1 < lines.count {
-            durationMs = max(1000, lines[currentIndex + 1].timeMs - lines[currentIndex].timeMs)
+            rawGapMs = max(500, lines[currentIndex + 1].timeMs - lines[currentIndex].timeMs)
         } else {
-            durationMs = 4000
+            rawGapMs = 4000
         }
+        let durationMs = calculateLineDuration(text: current, gapMs: rawGapMs)
 
         return LyricMatch4Lines(
             prevText: prev,

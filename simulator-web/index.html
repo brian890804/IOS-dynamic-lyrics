@@ -695,19 +695,49 @@
         log(`[CarPlay 焦點行] ➔ "${currText}"`);
       }
 
-      // 純文字動態橘色填滿：從左到右平滑展開 (width: 0% -> 100%)
+      // 純文字動態橘色填滿：依據真實歌詞語速精準推進
+      const effectiveProgressMs = progressMs + lyricOffsetMs;
       if (currentIndex >= 0 && currentIndex < currentLyrics.length) {
         const currentEl = document.getElementById(`lyric-${currentIndex}`);
         if (currentEl) {
           const startMs = currentLyrics[currentIndex].timeMs;
-          const endMs = (currentIndex + 1 < currentLyrics.length) ? currentLyrics[currentIndex + 1].timeMs : (startMs + 4000);
+          const nextStartMs = (currentIndex + 1 < currentLyrics.length) ? currentLyrics[currentIndex + 1].timeMs : (startMs + 4000);
+          const rawGapMs = Math.max(500, nextStartMs - startMs);
+          const activeDurationMs = getActualLineDuration(currentLyrics[currentIndex].text, rawGapMs);
+
           let percent = 0;
-          if (progressMs >= startMs && endMs > startMs) {
-            percent = Math.min(100, Math.max(0, ((progressMs - startMs) / (endMs - startMs)) * 100));
+          if (effectiveProgressMs >= startMs) {
+            percent = Math.min(100, Math.max(0, ((effectiveProgressMs - startMs) / activeDurationMs) * 100));
           }
           currentEl.style.setProperty('--sweep', `${percent.toFixed(1)}%`);
         }
       }
+    }
+
+    function getActualLineDuration(text, gapMs) {
+      const clean = text.replace(/[\s\p{P}]/gu, '');
+      const charCount = Math.max(4, clean.length || 8);
+      // 中文流行歌曲標準語速：每個字約 320ms ~ 350ms
+      const naturalSingingMs = Math.round(charCount * 330);
+
+      if (gapMs > naturalSingingMs + 1000) {
+        // 兩句之間有間奏或過門音樂：以自然演唱時間為主，唱完停留在 100% 亮橘色
+        return Math.min(naturalSingingMs, Math.max(1600, gapMs - 800));
+      } else if (gapMs > 1200) {
+        // 正常句間換氣：在下一句前留 200ms 空檔
+        return Math.max(1200, Math.min(naturalSingingMs, gapMs - 200));
+      } else {
+        // 快節奏連續演唱
+        return Math.max(800, gapMs * 0.9);
+      }
+    }
+
+    let lyricOffsetMs = 0;
+
+    function adjustTimingOffset(deltaMs) {
+      lyricOffsetMs += deltaMs;
+      log(`⏱ 節奏微調: ${lyricOffsetMs >= 0 ? '+' : ''}${lyricOffsetMs} ms`);
+      update4Lines(currentProgressMs, true);
     }
 
     function togglePlay() {
