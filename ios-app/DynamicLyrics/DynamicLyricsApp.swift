@@ -4,7 +4,6 @@
 //
 
 import SwiftUI
-import Combine
 
 @main
 struct DynamicLyricsApp: App {
@@ -21,13 +20,16 @@ struct ContentView: View {
     @State private var artistName: String = "周杰倫"
     @State private var isSimulating: Bool = false
     @State private var lyricLines: [LyricLine] = []
+    
+    // 4 行歌詞預覽
+    @State private var prevLyric: String = ""
     @State private var currentLyric: String = "準備就緒"
-    @State private var nextLyric: String = ""
+    @State private var nextLyric1: String = ""
+    @State private var nextLyric2: String = ""
+    
     @State private var progressMs: Int = 0
     @State private var loadTask: Task<Void, Never>?
-    /// 上次推給 Live Activity 的播放狀態 (用來偵測暫停 / 繼續)
     @State private var lastPushedIsPlaying: Bool?
-    /// 目前 lyricLines 屬於哪首歌 (避免換歌瞬間用舊歌詞比對新進度)
     @State private var loadedTrackUri: String?
 
     var body: some View {
@@ -50,12 +52,8 @@ struct ContentView: View {
                 .background(Color(.secondarySystemBackground))
                 .cornerRadius(12)
 
-                // 歌詞預覽卡片 (比照 CarPlay 顯示效果)
+                // 4 行歌詞預覽卡片 (比照 CarPlay 顯示效果)
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("CarPlay / Live Activity 預覽")
-                        .font(.caption2)
-                        .foregroundColor(.gray)
-
                     HStack {
                         Text(trackName)
                             .font(.caption)
@@ -64,19 +62,38 @@ struct ContentView: View {
                         Text("• " + artistName)
                             .font(.caption)
                             .foregroundColor(.secondary)
+                        Spacer()
+                        Text("CarPlay 4 行即時預覽")
+                            .font(.caption2)
+                            .foregroundColor(.gray)
                     }
 
-                    Text(currentLyric)
-                        .font(.title3)
-                        .fontWeight(.bold)
-                        .foregroundColor(.primary)
-                        .id("preview-curr-\(currentLyric)")
-                        .animation(.easeInOut, value: currentLyric)
+                    VStack(alignment: .leading, spacing: 4) {
+                        // 第 1 條：之前唱過的
+                        Text(prevLyric.isEmpty ? " " : prevLyric)
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary.opacity(0.5))
+                            .lineLimit(1)
 
-                    Text(nextLyric)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .id("preview-next-\(nextLyric)")
+                        // 第 2 條：當下正在唱的
+                        Text(currentLyric)
+                            .font(.system(size: 17, weight: .heavy, design: .rounded))
+                            .foregroundColor(.green)
+                            .lineLimit(1)
+                            .id("curr-\(currentLyric)")
+
+                        // 第 3 條：下一句
+                        Text(nextLyric1.isEmpty ? " " : nextLyric1)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.primary)
+                            .lineLimit(1)
+
+                        // 第 4 條：下下句
+                        Text(nextLyric2.isEmpty ? " " : nextLyric2)
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary.opacity(0.4))
+                            .lineLimit(1)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
@@ -98,7 +115,7 @@ struct ContentView: View {
                         .font(.headline)
                     }
 
-                    Text("提示：開啟播放後將啟動背景保活與有序 ActivityKit 佇列，動態島與 CarPlay 將即時無延遲同步。")
+                    Text("提示：開啟播放後將啟動背景保活與 4 行卡拉OK逐字渲染，CarPlay 與動態島將自動同步。")
                         .font(.caption2)
                         .foregroundColor(.gray)
                         .multilineTextAlignment(.center)
@@ -109,7 +126,6 @@ struct ContentView: View {
             .padding()
             .navigationTitle("靈動歌詞")
         }
-        // 換歌 → 重新抓歌詞；每次進度插值 / 暫停 / 拖動 → 重新比對當前句
         .onReceive(SpotifyRemoteManager.shared.trackChanged.receive(on: RunLoop.main)) { state in
             loadTrack(state)
         }
@@ -126,28 +142,28 @@ struct ContentView: View {
         }
     }
 
-    /// 模擬模式：以手動輸入的歌名假裝成 Spotify 推送，走與實機完全相同的同步管線
     private func startSimulation() {
         isSimulating = true
         BackgroundAudioManager.shared.startKeepAlive()
         SpotifyRemoteManager.shared.updatePlaybackState(
-            trackUri: "sim:\(UUID().uuidString)",  // 每次都視為新歌 → 觸發 trackChanged 抓歌詞
+            trackUri: "sim:\(UUID().uuidString)",
             trackName: trackName,
             artistName: artistName,
-            durationMs: 0,          // 未知 → 抓到歌詞後由 lrclib 時長補上也可
+            durationMs: 295000,
             progressMs: 0,
             isPlaying: true
         )
     }
 
-    /// 換歌：依 Spotify 提供的歌名 / 歌手 / 時長抓歌詞並啟動 Live Activity
     private func loadTrack(_ state: SpotifyTrackState) {
         loadTask?.cancel()
         trackName = state.trackName
         artistName = state.artistName
         lyricLines = []
         currentLyric = "載入歌詞中…"
-        nextLyric = ""
+        nextLyric1 = ""
+        nextLyric2 = ""
+        prevLyric = ""
         lastPushedIsPlaying = nil
         loadedTrackUri = nil
 
@@ -160,17 +176,21 @@ struct ContentView: View {
             self.loadedTrackUri = state.trackUri
 
             let progress = SpotifyRemoteManager.shared.getCurrentInterpolatedProgressMs()
-            let match = LrcParser.findCurrentAndNext(in: lines, progressMs: progress)
+            let match = LrcParser.find4Lines(in: lines, progressMs: progress)
+            self.prevLyric = match.prevText
             self.currentLyric = match.currentText
-            self.nextLyric = match.nextText
+            self.nextLyric1 = match.nextText1
+            self.nextLyric2 = match.nextText2
 
             await LiveActivityManager.shared.endActivity()
             LiveActivityManager.shared.startActivity(
                 songId: state.trackUri,
                 trackName: state.trackName,
                 artistName: state.artistName,
-                initialLyric: match.currentText,
-                nextLyric: match.nextText,
+                prevLyric: match.prevText,
+                currentLyric: match.currentText,
+                nextLyric1: match.nextText1,
+                nextLyric2: match.nextText2,
                 progressMs: progress,
                 durationMs: state.durationMs,
                 lineDurationSec: remainingLineSec(match: match, progressMs: progress, speed: state.playbackSpeed)
@@ -179,23 +199,27 @@ struct ContentView: View {
         }
     }
 
-    /// Spotify 狀態 (含 200ms 插值) 每次變動時呼叫：換句、暫停、繼續、拖動都會推 Live Activity
     private func onPlaybackTick(_ state: SpotifyTrackState?) {
         guard let state = state, state.trackUri == loadedTrackUri, !lyricLines.isEmpty else { return }
         progressMs = state.progressMs
-        let match = LrcParser.findCurrentAndNext(in: lyricLines, progressMs: state.progressMs)
+        let match = LrcParser.find4Lines(in: lyricLines, progressMs: state.progressMs)
         let lyricChanged = match.currentText != currentLyric
         let playStateChanged = lastPushedIsPlaying != state.isPlaying
         guard lyricChanged || playStateChanged else { return }
 
+        prevLyric = match.prevText
         currentLyric = match.currentText
-        nextLyric = match.nextText
+        nextLyric1 = match.nextText1
+        nextLyric2 = match.nextText2
         lastPushedIsPlaying = state.isPlaying
+
         LiveActivityManager.shared.updateLyric(
             trackName: state.trackName,
             artistName: state.artistName,
+            prevLyric: match.prevText,
             currentLyric: match.currentText,
-            nextLyric: match.nextText,
+            nextLyric1: match.nextText1,
+            nextLyric2: match.nextText2,
             progressMs: state.progressMs,
             durationMs: state.durationMs,
             isPlaying: state.isPlaying,
@@ -203,14 +227,13 @@ struct ContentView: View {
         )
     }
 
-    /// 本句「剩餘」秒數 (拖動到句中時不能用整句長度)，並考慮播放速度
-    private func remainingLineSec(match: LyricMatchResult, progressMs: Int, speed: Double) -> Double {
+    private func remainingLineSec(match: LyricMatch4Lines, progressMs: Int, speed: Double) -> Double {
         let nextIdx = match.currentIndex + 1
         let remainingMs: Int
-        if nextIdx < lyricLines.count {
+        if nextIdx >= 0 && nextIdx < lyricLines.count {
             remainingMs = max(500, lyricLines[nextIdx].timeMs - progressMs)
         } else {
-            remainingMs = match.lineDurationMs
+            remainingMs = match.currentLineDurationMs
         }
         return Double(remainingMs) / 1000.0 / max(speed, 0.1)
     }
@@ -218,12 +241,15 @@ struct ContentView: View {
     private func stopSimulation() {
         loadTask?.cancel()
         isSimulating = false
-        lyricLines = []
-        loadedTrackUri = nil
-        SpotifyRemoteManager.shared.updatePlaybackState(
-            trackUri: SpotifyRemoteManager.shared.currentState?.trackUri, trackName: trackName, artistName: artistName,
-            durationMs: 0, progressMs: 0, isPlaying: false)
         BackgroundAudioManager.shared.stopKeepAlive()
+        SpotifyRemoteManager.shared.updatePlaybackState(
+            trackUri: loadedTrackUri ?? "",
+            trackName: trackName,
+            artistName: artistName,
+            durationMs: 0,
+            progressMs: progressMs,
+            isPlaying: false
+        )
         Task {
             await LiveActivityManager.shared.endActivity()
         }

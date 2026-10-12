@@ -20,7 +20,7 @@ public class LiveActivityManager: ObservableObject {
     // 專屬更新佇列任務與最後推送狀態
     private var pendingUpdateTask: Task<Void, Never>? = nil
     private var lastEmittedLyric: String = ""
-    private var lastEmittedIsPlaying: Bool = true
+    private var lastEmittedIsPlaying: Bool? = nil
 
     private init() {
         if #available(iOS 16.1, *) {
@@ -29,16 +29,18 @@ public class LiveActivityManager: ObservableObject {
         }
     }
 
-    /// 啟動 Live Activity
+    /// 啟動 Live Activity (支援 4 行歌詞)
     public func startActivity(
         songId: String,
         trackName: String,
         artistName: String,
-        initialLyric: String,
-        nextLyric: String,
+        prevLyric: String = "",
+        currentLyric: String,
+        nextLyric1: String,
+        nextLyric2: String = "",
         progressMs: Int,
         durationMs: Int,
-        lineDurationSec: Double = 5.0
+        lineDurationSec: Double = 4.0
     ) {
         guard #available(iOS 16.1, *) else {
             print("Live Activities require iOS 16.1+")
@@ -60,8 +62,10 @@ public class LiveActivityManager: ObservableObject {
             trackName: trackName,
             artistName: artistName,
             albumArtUrl: nil,
-            currentLyric: initialLyric,
-            nextLyric: nextLyric,
+            prevLyric: prevLyric,
+            currentLyric: currentLyric,
+            nextLyric1: nextLyric1,
+            nextLyric2: nextLyric2,
             progressMs: progressMs,
             durationMs: durationMs,
             isPlaying: true,
@@ -77,7 +81,7 @@ public class LiveActivityManager: ObservableObject {
             )
             self.currentActivity = activity
             self.isRunning = true
-            self.lastEmittedLyric = initialLyric
+            self.lastEmittedLyric = currentLyric
             self.lastEmittedIsPlaying = true
             print("成功啟動 Live Activity ID: \(activity.id)")
         } catch {
@@ -85,12 +89,14 @@ public class LiveActivityManager: ObservableObject {
         }
     }
 
-    /// 高頻有序推送更新 (Serial Execution)
+    /// 高頻有序推送更新 (支援 4 行歌詞)
     public func updateLyric(
         trackName: String,
         artistName: String,
+        prevLyric: String = "",
         currentLyric: String,
-        nextLyric: String,
+        nextLyric1: String,
+        nextLyric2: String = "",
         progressMs: Int,
         durationMs: Int,
         isPlaying: Bool,
@@ -99,7 +105,6 @@ public class LiveActivityManager: ObservableObject {
         guard #available(iOS 16.1, *), let activity = currentActivity else { return }
 
         // 如果目前這句歌詞與上一句完全相同，且播送狀態未變，避免重複推播被系統節流
-        // (舊版只判斷 isPlaying，導致「暫停後在同一句繼續播放」的更新被吞掉)
         if currentLyric == lastEmittedLyric && isPlaying == lastEmittedIsPlaying {
             return
         }
@@ -111,8 +116,10 @@ public class LiveActivityManager: ObservableObject {
             trackName: trackName,
             artistName: artistName,
             albumArtUrl: nil,
+            prevLyric: prevLyric,
             currentLyric: currentLyric,
-            nextLyric: nextLyric,
+            nextLyric1: nextLyric1,
+            nextLyric2: nextLyric2,
             progressMs: progressMs,
             durationMs: durationMs,
             isPlaying: isPlaying,
@@ -127,7 +134,6 @@ public class LiveActivityManager: ObservableObject {
             if Task.isCancelled { return }
 
             if #available(iOS 16.2, *) {
-                // 設定 staleDate 提醒系統此幀能存活多久
                 let staleDate = now.addingTimeInterval(lineDurationSec * 1.5)
                 let content = ActivityContent(state: updatedState, staleDate: staleDate)
                 await activity.update(content)
@@ -144,6 +150,7 @@ public class LiveActivityManager: ObservableObject {
         pendingUpdateTask?.cancel()
         pendingUpdateTask = nil
         self.lastEmittedLyric = ""
+        self.lastEmittedIsPlaying = nil
 
         await activity.end(dismissalPolicy: .immediate)
         self.currentActivity = nil
