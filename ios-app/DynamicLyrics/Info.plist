@@ -15,6 +15,21 @@
     <true/>
     <key>NSSupportsLiveActivitiesFrequentUpdates</key>
     <true/>
+    <!-- Spotify Client ID 屬公開資訊 (PKCE 不使用 Client Secret)，App 內仍可覆寫 -->
+    <key>SpotifyClientID</key>
+    <string>041d9e9b8de240979ac61c1a6dda5a75</string>
+    <!-- Spotify OAuth 回呼：dynamiclyrics://spotify-callback -->
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key>
+            <string>com.example.DynamicLyrics.spotify</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>dynamiclyrics</string>
+            </array>
+        </dict>
+    </array>
     <!-- 核心：iOS 背景保活 (Audio, AirPlay, and Picture in Picture) -->
     <key>UIBackgroundModes</key>
     <array>

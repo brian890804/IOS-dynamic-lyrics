@@ -10,6 +10,13 @@ import WidgetKit
 import SwiftUI
 import ActivityKit
 
+@main
+struct LyricWidgetBundle: WidgetBundle {
+    var body: some Widget {
+        LyricLiveActivityWidget()
+    }
+}
+
 public struct LyricLiveActivityWidget: Widget {
     public init() {}
 
@@ -19,87 +26,11 @@ public struct LyricLiveActivityWidget: Widget {
     public var body: some WidgetConfiguration {
         ActivityConfiguration(for: LyricAttributes.self) { context in
             // ==========================================
-            // CarPlay 儀表板小工具卡片 & iPhone 鎖定畫面
+            // CarPlay (.small) & iPhone 鎖定畫面 (.medium)
             // ==========================================
-            VStack(alignment: .leading, spacing: 8) {
-                // 頂部歌曲資訊列：精緻圓角專輯封面 + 歌名/歌手
-                HStack(spacing: 10) {
-                    // 專輯封面卡片
-                    if let artUrl = context.state.albumArtUrl, let url = URL(string: artUrl) {
-                        AsyncImage(url: url) { phase in
-                            switch phase {
-                            case .success(let image):
-                                image
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                            default:
-                                fallbackAlbumArt
-                            }
-                        }
-                        .frame(width: 38, height: 38)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color.white.opacity(0.1), lineWidth: 1)
-                        )
-                    } else {
-                        fallbackAlbumArt
-                    }
-
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(context.state.trackName)
-                            .font(.system(size: 14, weight: .bold, design: .rounded))
-                            .foregroundColor(themeOrange)
-                            .lineLimit(1)
-                        Text(context.state.artistName)
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(Color.white.opacity(0.45))
-                            .lineLimit(1)
-                    }
-
-                    Spacer()
-                }
-
-                // 4 行滿版歌詞主體：滑順切換無閃爍、純文字染色絕無背景溢色
-                VStack(alignment: .leading, spacing: 7) {
-                    // 第 1 條：之前唱過的 (大字 15pt、微淡灰)
-                    Text(context.state.prevLyric.isEmpty ? " " : context.state.prevLyric)
-                        .font(.system(size: 15, weight: .medium, design: .rounded))
-                        .foregroundColor(Color.white.opacity(0.32))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                        .animation(.easeInOut(duration: 0.35), value: context.state.prevLyric)
-
-                    // 第 2 條：當下演唱主行 (24pt 滿版大字號、極致加粗、經典純橘色、無閃爍滑順切換)
-                    Text(context.state.currentLyric.isEmpty ? " " : context.state.currentLyric)
-                        .font(.system(size: 24, weight: .heavy, design: .rounded))
-                        .foregroundColor(themeOrange)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .animation(.easeInOut(duration: 0.35), value: context.state.currentLyric)
-
-                    // 第 3 條：下一句即將唱 (大字 17pt、高亮白)
-                    Text(context.state.nextLyric1.isEmpty ? " " : context.state.nextLyric1)
-                        .font(.system(size: 17, weight: .semibold, design: .rounded))
-                        .foregroundColor(Color.white.opacity(0.78))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                        .animation(.easeInOut(duration: 0.35), value: context.state.nextLyric1)
-
-                    // 第 4 條：下下句未來預覽 (14pt、次微淡)
-                    Text(context.state.nextLyric2.isEmpty ? " " : context.state.nextLyric2)
-                        .font(.system(size: 14, weight: .regular, design: .rounded))
-                        .foregroundColor(Color.white.opacity(0.35))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                        .animation(.easeInOut(duration: 0.35), value: context.state.nextLyric2)
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-            .background(darkBg)
+            LyricActivityView(state: context.state, themeOrange: themeOrange, darkBg: darkBg)
+                .activityBackgroundTint(darkBg)
+                .activitySystemActionForegroundColor(themeOrange)
 
         } dynamicIsland: { context in
             // ==========================================
@@ -154,9 +85,123 @@ public struct LyricLiveActivityWidget: Widget {
                     .foregroundColor(themeOrange)
             }
         }
+        // .small：CarPlay (iOS 26+) 與 Apple Watch 智慧型疊放使用的精簡版面
+        .supplementalActivityFamilies([.small, .medium])
+    }
+}
+
+/// 依 activityFamily 切換版面：CarPlay 為 .small，iPhone 鎖定畫面為 .medium
+private struct LyricActivityView: View {
+    @Environment(\.activityFamily) private var activityFamily
+
+    let state: LyricAttributes.ContentState
+    let themeOrange: Color
+    let darkBg: Color
+
+    var body: some View {
+        switch activityFamily {
+        case .small:
+            smallLayout
+        default:
+            mediumLayout
+        }
     }
 
-    private var fallbackAlbumArt: some View {
+    /// CarPlay 儀表板：空間小、需一眼可讀，只顯示當前句 + 下一句
+    private var smallLayout: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(state.trackName)
+                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                .foregroundColor(Color.white.opacity(0.5))
+                .lineLimit(1)
+
+            Text(state.currentLyric.isEmpty ? " " : state.currentLyric)
+                .font(.system(size: 18, weight: .heavy, design: .rounded))
+                .foregroundColor(themeOrange)
+                .lineLimit(2)
+                .minimumScaleFactor(0.6)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .animation(.easeInOut(duration: 0.35), value: state.currentLyric)
+
+            Text(state.nextLyric1.isEmpty ? " " : state.nextLyric1)
+                .font(.system(size: 13, weight: .medium, design: .rounded))
+                .foregroundColor(Color.white.opacity(0.7))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .background(darkBg)
+    }
+
+    private var mediumLayout: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // 頂部歌曲資訊列：精緻圓角專輯封面 + 歌名/歌手
+            HStack(spacing: 10) {
+                // Live Activity 無法下載網路圖片 (AsyncImage 在 Widget 中不會載入)，固定使用主題封面
+                LyricFallbackArt(themeOrange: themeOrange)
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(state.trackName)
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundColor(themeOrange)
+                        .lineLimit(1)
+                    Text(state.artistName)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(Color.white.opacity(0.45))
+                        .lineLimit(1)
+                }
+
+                Spacer()
+            }
+
+            // 4 行滿版歌詞主體：滑順切換無閃爍、純文字染色絕無背景溢色
+            VStack(alignment: .leading, spacing: 7) {
+                // 第 1 條：之前唱過的 (大字 15pt、微淡灰)
+                Text(state.prevLyric.isEmpty ? " " : state.prevLyric)
+                    .font(.system(size: 15, weight: .medium, design: .rounded))
+                    .foregroundColor(Color.white.opacity(0.32))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .animation(.easeInOut(duration: 0.35), value: state.prevLyric)
+
+                // 第 2 條：當下演唱主行 (24pt 滿版大字號、極致加粗、經典純橘色、無閃爍滑順切換)
+                Text(state.currentLyric.isEmpty ? " " : state.currentLyric)
+                    .font(.system(size: 24, weight: .heavy, design: .rounded))
+                    .foregroundColor(themeOrange)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .animation(.easeInOut(duration: 0.35), value: state.currentLyric)
+
+                // 第 3 條：下一句即將唱 (大字 17pt、高亮白)
+                Text(state.nextLyric1.isEmpty ? " " : state.nextLyric1)
+                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                    .foregroundColor(Color.white.opacity(0.78))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .animation(.easeInOut(duration: 0.35), value: state.nextLyric1)
+
+                // 第 4 條：下下句未來預覽 (14pt、次微淡)
+                Text(state.nextLyric2.isEmpty ? " " : state.nextLyric2)
+                    .font(.system(size: 14, weight: .regular, design: .rounded))
+                    .foregroundColor(Color.white.opacity(0.35))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .animation(.easeInOut(duration: 0.35), value: state.nextLyric2)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .background(darkBg)
+    }
+}
+
+private struct LyricFallbackArt: View {
+    let themeOrange: Color
+
+    var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 8)
                 .fill(LinearGradient(colors: [themeOrange.opacity(0.8), Color.black], startPoint: .topLeading, endPoint: .bottomTrailing))
@@ -167,4 +212,3 @@ public struct LyricLiveActivityWidget: Widget {
         .frame(width: 38, height: 38)
     }
 }
-

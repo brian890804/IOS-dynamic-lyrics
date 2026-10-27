@@ -92,11 +92,12 @@ public class LiveActivityManager: ObservableObject {
         progressMs: Int,
         durationMs: Int,
         isPlaying: Bool,
-        lineDurationSec: Double = 4.0
+        lineDurationSec: Double = 4.0,
+        force: Bool = false
     ) {
         guard #available(iOS 16.1, *), let activity = currentActivity else { return }
 
-        if currentLyric == lastEmittedLyric && isPlaying == lastEmittedIsPlaying {
+        if !force && currentLyric == lastEmittedLyric && isPlaying == lastEmittedIsPlaying {
             return
         }
         self.lastEmittedLyric = currentLyric
@@ -130,6 +131,55 @@ public class LiveActivityManager: ObservableObject {
             } else {
                 await activity.update(using: updatedState)
             }
+        }
+    }
+
+    /// 換歌時使用：已有 Live Activity 就直接更新內容，沒有才新建。
+    /// iOS 只允許 App 在前景時 `Activity.request`，開車鎖屏換歌時若先 end 再 start 會失敗，
+    /// 所以整段聆聽期間都沿用同一個 Activity。
+    public func showTrack(
+        songId: String,
+        trackName: String,
+        artistName: String,
+        albumArtUrl: String? = nil,
+        prevLyric: String = "",
+        currentLyric: String,
+        nextLyric1: String,
+        nextLyric2: String = "",
+        progressMs: Int,
+        durationMs: Int,
+        isPlaying: Bool = true,
+        lineDurationSec: Double = 4.0
+    ) {
+        if let activity = currentActivity, activity.activityState == .active {
+            updateLyric(
+                trackName: trackName,
+                artistName: artistName,
+                albumArtUrl: albumArtUrl,
+                prevLyric: prevLyric,
+                currentLyric: currentLyric,
+                nextLyric1: nextLyric1,
+                nextLyric2: nextLyric2,
+                progressMs: progressMs,
+                durationMs: durationMs,
+                isPlaying: isPlaying,
+                lineDurationSec: lineDurationSec,
+                force: true
+            )
+        } else {
+            startActivity(
+                songId: songId,
+                trackName: trackName,
+                artistName: artistName,
+                albumArtUrl: albumArtUrl,
+                prevLyric: prevLyric,
+                currentLyric: currentLyric,
+                nextLyric1: nextLyric1,
+                nextLyric2: nextLyric2,
+                progressMs: progressMs,
+                durationMs: durationMs,
+                lineDurationSec: lineDurationSec
+            )
         }
     }
 

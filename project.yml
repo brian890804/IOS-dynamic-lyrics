@@ -1,8 +1,8 @@
 name: DynamicLyrics
 options:
   deploymentTarget:
-    iOS: "17.0"
-  xcodeVersion: "15.4"
+    iOS: "18.0"
+  xcodeVersion: "16.0"
 
 settings:
   SWIFT_VERSION: "5.9"
@@ -14,7 +14,7 @@ targets:
   DynamicLyrics:
     type: application
     platform: iOS
-    deploymentTarget: "17.0"
+    deploymentTarget: "18.0"
     bundleId: com.example.DynamicLyrics
     settings:
       base:
@@ -27,6 +27,12 @@ targets:
         CFBundleIdentifier: com.example.DynamicLyrics
         NSSupportsLiveActivities: true
         NSSupportsLiveActivitiesFrequentUpdates: true
+        # Spotify Client ID 屬公開資訊 (PKCE 不使用 Client Secret)，App 內仍可覆寫
+        SpotifyClientID: 041d9e9b8de240979ac61c1a6dda5a75
+        CFBundleURLTypes:
+          - CFBundleURLName: com.example.DynamicLyrics.spotify
+            CFBundleURLSchemes:
+              - dynamiclyrics
         UIBackgroundModes:
           - audio
         UILaunchScreen: {}
@@ -41,7 +47,7 @@ targets:
   LyricWidget:
     type: app-extension
     platform: iOS
-    deploymentTarget: "17.0"
+    deploymentTarget: "18.0"
     bundleId: com.example.DynamicLyrics.LyricWidget
     settings:
       base:

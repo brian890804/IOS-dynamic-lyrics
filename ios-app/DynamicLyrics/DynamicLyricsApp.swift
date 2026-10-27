@@ -16,6 +16,10 @@ struct DynamicLyricsApp: App {
 
 struct ContentView: View {
     @StateObject private var liveActivityManager = LiveActivityManager.shared
+    @StateObject private var spotifyAuth = SpotifyAuthManager.shared
+    @StateObject private var spotifyPoller = SpotifyWebPoller.shared
+    @State private var spotifyError: String?
+    @State private var isConnectingSpotify = false
     @State private var trackName: String = "一路向北"
     @State private var artistName: String = "周杰倫"
     @State private var albumArtUrl: String? = nil
@@ -44,117 +48,124 @@ struct ContentView: View {
 
     var body: some View {
         NavigationView {
-            VStack(spacing: 20) {
-                // 音樂設定
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("歌曲設定 (自動抓取高畫質專輯封面)")
-                        .font(.caption)
-                        .foregroundColor(.gray)
+            ScrollView {
+                VStack(spacing: 20) {
+                    spotifySection
 
-                    HStack {
-                        TextField("歌名", text: $trackName)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                        TextField("歌手", text: $artistName)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                    // 音樂設定
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("模擬模式 (未連線 Spotify 時測試用)")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+
+                        HStack {
+                            TextField("歌名", text: $trackName)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                            TextField("歌手", text: $artistName)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                        }
                     }
-                }
-                .padding()
-                .background(Color(.secondarySystemBackground))
-                .cornerRadius(12)
+                    .padding()
+                    .background(Color(.secondarySystemBackground))
+                    .cornerRadius(12)
 
-                // 現代感預覽卡片
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(spacing: 10) {
-                        if let artUrl = albumArtUrl, let url = URL(string: artUrl) {
-                            AsyncImage(url: url) { image in
-                                image.resizable().aspectRatio(contentMode: .fill)
-                            } placeholder: {
-                                Color.gray.opacity(0.3)
-                            }
-                            .frame(width: 44, height: 44)
-                            .cornerRadius(8)
-                        } else {
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(themeOrange.opacity(0.3))
+                    // 現代感預覽卡片
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(spacing: 10) {
+                            if let artUrl = albumArtUrl, let url = URL(string: artUrl) {
+                                AsyncImage(url: url) { image in
+                                    image.resizable().aspectRatio(contentMode: .fill)
+                                } placeholder: {
+                                    Color.gray.opacity(0.3)
+                                }
                                 .frame(width: 44, height: 44)
-                                .overlay(Image(systemName: "music.note").foregroundColor(themeOrange))
+                                .cornerRadius(8)
+                            } else {
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(themeOrange.opacity(0.3))
+                                    .frame(width: 44, height: 44)
+                                    .overlay(Image(systemName: "music.note").foregroundColor(themeOrange))
+                            }
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(trackName)
+                                    .font(.headline)
+                                    .bold()
+                                    .foregroundColor(themeOrange)
+                                Text(artistName)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
                         }
 
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(trackName)
-                                .font(.headline)
-                                .bold()
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(prevLyric.isEmpty ? " " : prevLyric)
+                                .font(.system(size: 14))
+                                .foregroundColor(.secondary.opacity(0.5))
+                                .lineLimit(1)
+
+                            Text(currentLyric)
+                                .font(.system(size: 20, weight: .heavy, design: .rounded))
                                 .foregroundColor(themeOrange)
-                            Text(artistName)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.7)
+
+                            Text(nextLyric1.isEmpty ? " " : nextLyric1)
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.primary)
+                                .lineLimit(1)
+
+                            Text(nextLyric2.isEmpty ? " " : nextLyric2)
+                                .font(.system(size: 13))
+                                .foregroundColor(.secondary.opacity(0.4))
+                                .lineLimit(1)
                         }
-                        Spacer()
                     }
+                    .padding()
+                    .background(Color(.tertiarySystemBackground))
+                    .cornerRadius(14)
 
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(prevLyric.isEmpty ? " " : prevLyric)
-                            .font(.system(size: 14))
-                            .foregroundColor(.secondary.opacity(0.5))
-                            .lineLimit(1)
+                    // 核心播放控制列：上一首、播放/暫停、下一首
+                    VStack(spacing: 12) {
+                        HStack(spacing: 40) {
+                            Button(action: playPrevious) {
+                                Image(systemName: "backward.fill")
+                                    .font(.system(size: 26))
+                                    .foregroundColor(.primary)
+                            }
 
-                        Text(currentLyric)
-                            .font(.system(size: 20, weight: .heavy, design: .rounded))
-                            .foregroundColor(themeOrange)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.7)
+                            Button(action: toggleSimulation) {
+                                Image(systemName: isSimulating ? "pause.circle.fill" : "play.circle.fill")
+                                    .font(.system(size: 64))
+                                    .foregroundColor(themeOrange)
+                            }
 
-                        Text(nextLyric1.isEmpty ? " " : nextLyric1)
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.primary)
-                            .lineLimit(1)
+                            Button(action: playNext) {
+                                Image(systemName: "forward.fill")
+                                    .font(.system(size: 26))
+                                    .foregroundColor(.primary)
+                            }
+                        }
+                        .padding(.vertical, 4)
 
-                        Text(nextLyric2.isEmpty ? " " : nextLyric2)
-                            .font(.system(size: 13))
-                            .foregroundColor(.secondary.opacity(0.4))
-                            .lineLimit(1)
+                        Text(isSimulating ? "播放中：靈動歌詞與動態島持續同步" : "已暫停：點選播放啟動靈動歌詞")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                     }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color(.secondarySystemBackground))
+                    .cornerRadius(14)
+                    .disabled(spotifyPoller.isRunning)
+                    .opacity(spotifyPoller.isRunning ? 0.4 : 1)
                 }
                 .padding()
-                .background(Color(.tertiarySystemBackground))
-                .cornerRadius(14)
-
-                // 核心播放控制列：上一首、播放/暫停、下一首
-                VStack(spacing: 12) {
-                    HStack(spacing: 40) {
-                        Button(action: playPrevious) {
-                            Image(systemName: "backward.fill")
-                                .font(.system(size: 26))
-                                .foregroundColor(.primary)
-                        }
-
-                        Button(action: toggleSimulation) {
-                            Image(systemName: isSimulating ? "pause.circle.fill" : "play.circle.fill")
-                                .font(.system(size: 64))
-                                .foregroundColor(themeOrange)
-                        }
-
-                        Button(action: playNext) {
-                            Image(systemName: "forward.fill")
-                                .font(.system(size: 26))
-                                .foregroundColor(.primary)
-                        }
-                    }
-                    .padding(.vertical, 4)
-
-                    Text(isSimulating ? "播放中：靈動歌詞與動態島持續同步" : "已暫停：點選播放啟動靈動歌詞")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color(.secondarySystemBackground))
-                .cornerRadius(14)
-
-                Spacer()
             }
-            .padding()
             .navigationTitle("靈動歌詞")
+        }
+        .onAppear {
+            if spotifyAuth.isConnected { startSpotifySync() }
         }
         .onReceive(SpotifyRemoteManager.shared.trackChanged.receive(on: RunLoop.main)) { state in
             loadTrack(state)
@@ -163,6 +174,114 @@ struct ContentView: View {
             onPlaybackTick(state)
         }
     }
+
+    // MARK: - Spotify
+
+    private var spotifySection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Image(systemName: "dot.radiowaves.left.and.right")
+                    .foregroundColor(.green)
+                Text("Spotify 即時同步")
+                    .font(.headline)
+                Spacer()
+            }
+
+            if spotifyAuth.isConnected {
+                Text(spotifyPoller.status)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .lineLimit(2)
+
+                HStack {
+                    Button(spotifyPoller.isRunning ? "暫停同步" : "開始同步") {
+                        if spotifyPoller.isRunning { spotifyPoller.stop() } else { startSpotifySync() }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(themeOrange)
+
+                    Spacer()
+
+                    Button("登出 Spotify", role: .destructive) {
+                        spotifyPoller.stop()
+                        spotifyAuth.disconnect()
+                    }
+                    .buttonStyle(.bordered)
+                }
+            } else {
+                TextField("貼上 Spotify Client ID", text: $spotifyAuth.clientId)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+                    .font(.system(.body, design: .monospaced))
+
+                Text("Redirect URI 請在 Spotify Dashboard 填：\(SpotifyAuthManager.redirectUri)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .textSelection(.enabled)
+
+                Button {
+                    connectSpotify()
+                } label: {
+                    HStack {
+                        if isConnectingSpotify { ProgressView() }
+                        Text("登入 Spotify")
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.green)
+                .disabled(isConnectingSpotify || spotifyAuth.clientId.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+
+            if let spotifyError = spotifyError {
+                Text(spotifyError)
+                    .font(.caption)
+                    .foregroundColor(.red)
+            }
+        }
+        .padding()
+        .background(Color(.secondarySystemBackground))
+        .cornerRadius(12)
+    }
+
+    private func connectSpotify() {
+        spotifyError = nil
+        isConnectingSpotify = true
+        Task {
+            defer { isConnectingSpotify = false }
+            do {
+                try await spotifyAuth.connect()
+                startSpotifySync()
+            } catch {
+                spotifyError = error.localizedDescription
+            }
+        }
+    }
+
+    private func startSpotifySync() {
+        // 不呼叫 stopSimulation()：它會非同步 endActivity，可能把下面剛建立的 Activity 關掉
+        if isSimulating {
+            loadTask?.cancel()
+            isSimulating = false
+            BackgroundAudioManager.shared.stopKeepAlive()
+        }
+        spotifyPoller.start()
+        // iOS 只允許前景建立 Live Activity：趁 App 還在前景先建好，之後開車鎖屏換歌都只做 update
+        if liveActivityManager.currentActivity?.activityState != .active {
+            liveActivityManager.startActivity(
+                songId: "spotify",
+                trackName: "等待 Spotify 播放",
+                artistName: "靈動歌詞",
+                currentLyric: "♪",
+                nextLyric1: "",
+                progressMs: 0,
+                durationMs: 0
+            )
+        }
+    }
+
+    // MARK: - 模擬模式
 
     private func playPrevious() {
         playlistIndex = (playlistIndex - 1 + playlist.count) % playlist.count
@@ -233,8 +352,7 @@ struct ContentView: View {
             self.nextLyric1 = match.nextText1
             self.nextLyric2 = match.nextText2
 
-            await LiveActivityManager.shared.endActivity()
-            LiveActivityManager.shared.startActivity(
+            LiveActivityManager.shared.showTrack(
                 songId: state.trackUri,
                 trackName: state.trackName,
                 artistName: state.artistName,
@@ -245,6 +363,7 @@ struct ContentView: View {
                 nextLyric2: match.nextText2,
                 progressMs: progress,
                 durationMs: state.durationMs,
+                isPlaying: state.isPlaying,
                 lineDurationSec: remainingLineSec(match: match, progressMs: progress, speed: state.playbackSpeed)
             )
             self.lastPushedIsPlaying = state.isPlaying

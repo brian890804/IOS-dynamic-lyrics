@@ -29,6 +29,36 @@ IOS-dynamic-lyrics/
 
 ---
 
+## 〇、裝到 iPhone 並在 CarPlay 顯示 Spotify 歌詞（不需要 Mac）
+
+### 需求
+- iPhone **iOS 18 以上**；要在 **CarPlay** 上看到歌詞需 **iOS 26 以上**（iOS 26 起 CarPlay 才會顯示 Live Activity）
+- 一個 Spotify 帳號（Spotify Developer 的開發模式 App 可能要求擁有者為 Premium，以 Spotify 最新規定為準）
+
+### 步驟 1：申請 Spotify Client ID（免費、約 2 分鐘）
+iOS 不允許一個 App 讀取另一個 App 正在播什麼，必須透過 Spotify 官方 Web API，而 API 要求每個 App 註冊。
+1. 到 <https://developer.spotify.com/dashboard> 登入 → **Create app**
+2. **Redirect URIs** 填入：`dynamiclyrics://spotify-callback`
+3. **Which API/SDKs are you planning to use** 勾選 **Web API**
+4. 建立後複製 **Client ID**（不需要 Client Secret）
+5. 本專案已在 `project.yml` / `Info.plist` 的 `SpotifyClientID` 內建一組 Client ID；換成自己的就改這兩處，或在 App 內直接貼上覆寫
+
+### 步驟 2：用 GitHub Actions 打包 IPA
+推送到 `main` 或在 Actions 頁手動執行 **Build iOS IPA**，完成後下載 `DynamicLyrics-Unsigned-IPA`。
+
+### 步驟 3：側載安裝
+IPA 未簽名，用 [Sideloadly](https://sideloadly.io/) 或 AltStore 搭配你的 Apple ID 安裝（免費 Apple ID 簽的 App **7 天後需重簽**）。
+
+### 步驟 4：第一次使用
+1. 打開「靈動歌詞」→（Client ID 已預先帶入）**登入 Spotify** 並同意授權
+2. 看到「同步中」後即可切到 Spotify 播歌；鎖定畫面 / 動態島 / CarPlay 會顯示即時歌詞
+3. ⚠️ 上車前請先**在前景打開一次 App**：iOS 只允許 App 在前景建立 Live Activity，建立後背景換歌只會更新內容
+4. 不要從 App 切換器滑掉 App，否則背景同步會停止
+
+> 歌詞顯示在 CarPlay 的儀表板 / Live Activity 區域，不會疊在 Spotify 自己的 CarPlay 畫面上（iOS 不允許第三方 App 覆蓋其他 App 的畫面）。
+
+---
+
 ## 一、在電腦上 Local 環境測試（免 Mac / 免 iOS 實機）
 
 我們已經為你打造了一套**本機互動式模擬器**，在 Linux / Windows / Mac 上都可以直接執行並即時測試歌詞抓取與 CarPlay 渲染效果：

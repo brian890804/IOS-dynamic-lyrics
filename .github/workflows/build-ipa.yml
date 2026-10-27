@@ -8,26 +8,22 @@ on:
 jobs:
   build:
     name: Build DynamicLyrics IPA
-    runs-on: macos-14
+    runs-on: macos-15
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: List Available Xcodes
+      - name: Select Xcode 26
         run: |
           ls -d /Applications/Xcode*
-          # 檢查是否有 Xcode 16，若有則直接使用 Xcode 16，否則使用預設
-          if [ -d "/Applications/Xcode_16.app" ]; then
-            sudo xcode-select -s /Applications/Xcode_16.app/Contents/Developer
-          elif [ -d "/Applications/Xcode_16.1.app" ]; then
-            sudo xcode-select -s /Applications/Xcode_16.1.app/Contents/Developer
-          elif [ -d "/Applications/Xcode_16.0.app" ]; then
-            sudo xcode-select -s /Applications/Xcode_16.0.app/Contents/Developer
-          else
-            # 若 runner 只有 Xcode 15，則不要切換，讓系統維持預設
-            echo "Using default installed Xcode"
+          # CarPlay 顯示 Live Activity 需要 iOS 26 SDK：優先選最新正式版 Xcode 26，沒有才退回最新可用版本
+          XCODE_APP=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | grep -iv beta | sort -V | tail -n 1)
+          if [ -z "$XCODE_APP" ]; then
+            XCODE_APP=$(ls -d /Applications/Xcode_*.app | grep -iv beta | sort -V | tail -n 1)
           fi
+          echo "Using $XCODE_APP"
+          sudo xcode-select -s "$XCODE_APP/Contents/Developer"
           xcodebuild -version
 
       - name: Generate Xcode Project
