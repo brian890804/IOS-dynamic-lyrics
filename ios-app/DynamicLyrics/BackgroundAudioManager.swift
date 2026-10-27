@@ -19,6 +19,33 @@ public class BackgroundAudioManager: NSObject, AVAudioPlayerDelegate {
 
     private override init() {
         super.init()
+        let center = NotificationCenter.default
+        center.addObserver(self, selector: #selector(handleInterruption(_:)),
+                           name: AVAudioSession.interruptionNotification, object: nil)
+        center.addObserver(self, selector: #selector(handleMediaServicesReset),
+                           name: AVAudioSession.mediaServicesWereResetNotification, object: nil)
+    }
+
+    /// 來電 / Siri 等中斷會讓靜音播放器停止，若不恢復 App 會在背景被凍結、歌詞停住
+    @objc private func handleInterruption(_ notification: Notification) {
+        guard isKeepingAlive,
+              let raw = notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+              AVAudioSession.InterruptionType(rawValue: raw) == .ended else { return }
+        do {
+            try AVAudioSession.sharedInstance().setActive(true)
+            audioPlayer?.play()
+            print("[BackgroundAudio] 中斷結束，已恢復保活")
+        } catch {
+            print("[BackgroundAudio] 中斷後恢復失敗: \(error.localizedDescription)")
+        }
+    }
+
+    /// 系統音訊服務重啟後，原本的 Session 與播放器都已失效，需重新建立
+    @objc private func handleMediaServicesReset() {
+        guard isKeepingAlive else { return }
+        audioPlayer = nil
+        isKeepingAlive = false
+        startKeepAlive()
     }
 
     /// 設定音訊模式並開始背景保活

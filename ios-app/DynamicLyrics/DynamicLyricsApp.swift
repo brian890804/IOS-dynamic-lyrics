@@ -18,6 +18,7 @@ struct ContentView: View {
     @StateObject private var liveActivityManager = LiveActivityManager.shared
     @StateObject private var spotifyAuth = SpotifyAuthManager.shared
     @StateObject private var spotifyPoller = SpotifyWebPoller.shared
+    @Environment(\.scenePhase) private var scenePhase
     @State private var spotifyError: String?
     @State private var isConnectingSpotify = false
     @State private var trackName: String = "一路向北"
@@ -167,6 +168,10 @@ struct ContentView: View {
         .onAppear {
             if spotifyAuth.isConnected { startSpotifySync() }
         }
+        .onChange(of: scenePhase) { _, phase in
+            // Live Activity 最長 8 小時或被使用者滑掉後就會結束，回到前景時補建
+            if phase == .active && spotifyPoller.isRunning { ensureLiveActivity() }
+        }
         .onReceive(SpotifyRemoteManager.shared.trackChanged.receive(on: RunLoop.main)) { state in
             loadTrack(state)
         }
@@ -267,18 +272,25 @@ struct ContentView: View {
             BackgroundAudioManager.shared.stopKeepAlive()
         }
         spotifyPoller.start()
-        // iOS 只允許前景建立 Live Activity：趁 App 還在前景先建好，之後開車鎖屏換歌都只做 update
-        if liveActivityManager.currentActivity?.activityState != .active {
-            liveActivityManager.startActivity(
-                songId: "spotify",
-                trackName: "等待 Spotify 播放",
-                artistName: "靈動歌詞",
-                currentLyric: "♪",
-                nextLyric1: "",
-                progressMs: 0,
-                durationMs: 0
-            )
-        }
+        ensureLiveActivity()
+    }
+
+    /// iOS 只允許前景建立 Live Activity：趁 App 還在前景先建好，之後開車鎖屏換歌都只做 update
+    private func ensureLiveActivity() {
+        guard liveActivityManager.currentActivity?.activityState != .active else { return }
+        let state = SpotifyRemoteManager.shared.currentState
+        let hasTrack = loadedTrackUri != nil && state != nil
+        liveActivityManager.startActivity(
+            songId: state?.trackUri ?? "spotify",
+            trackName: hasTrack ? trackName : "等待 Spotify 播放",
+            artistName: hasTrack ? artistName : "靈動歌詞",
+            prevLyric: hasTrack ? prevLyric : "",
+            currentLyric: hasTrack ? currentLyric : "♪",
+            nextLyric1: hasTrack ? nextLyric1 : "",
+            nextLyric2: hasTrack ? nextLyric2 : "",
+            progressMs: state?.progressMs ?? 0,
+            durationMs: state?.durationMs ?? 0
+        )
     }
 
     // MARK: - 模擬模式
@@ -332,16 +344,28 @@ struct ContentView: View {
         lastPushedIsPlaying = nil
         loadedTrackUri = nil
 
+        // 換歌當下立刻顯示新歌名，避免歌詞抓取期間 CarPlay 還停在上一首
+        LiveActivityManager.shared.showTrack(
+            songId: state.trackUri,
+            trackName: state.trackName,
+            artistName: state.artistName,
+            currentLyric: "載入歌詞中…",
+            nextLyric1: "",
+            progressMs: state.progressMs,
+            durationMs: state.durationMs,
+            isPlaying: state.isPlaying
+        )
+
         loadTask = Task {
-            // 同步獲取專輯封面
-            let artUrl = await ArtworkService.shared.fetchArtworkUrl(trackName: state.trackName, artistName: state.artistName)
+            // 封面與歌詞並行抓取，歌詞不必等封面
+            let durationSec = state.durationMs > 0 ? Double(state.durationMs) / 1000 : nil
+            async let artUrlResult = ArtworkService.shared.fetchArtworkUrl(trackName: state.trackName, artistName: state.artistName)
+            async let linesResult = try? LyricService.shared.fetchLyrics(
+                trackName: state.trackName, artistName: state.artistName, durationSec: durationSec)
+            let artUrl = await artUrlResult
+            let lines = await linesResult ?? []
             if Task.isCancelled { return }
             self.albumArtUrl = artUrl
-
-            let durationSec = state.durationMs > 0 ? Double(state.durationMs) / 1000 : nil
-            let lines = (try? await LyricService.shared.fetchLyrics(
-                trackName: state.trackName, artistName: state.artistName, durationSec: durationSec)) ?? []
-            if Task.isCancelled { return }
             self.lyricLines = lines
             self.loadedTrackUri = state.trackUri
 

@@ -4,7 +4,7 @@ import PackageDescription
 let package = Package(
     name: "DynamicLyrics",
     platforms: [
-        .iOS(.v18)
+        .iOS(.v17)
     ],
     products: [
         .library(

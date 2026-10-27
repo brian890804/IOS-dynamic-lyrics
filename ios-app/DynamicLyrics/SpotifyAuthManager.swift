@@ -118,22 +118,23 @@ public final class SpotifyAuthManager: NSObject, ObservableObject {
         guard let refreshToken = Keychain.read(Self.refreshTokenKeychainKey) else {
             throw SpotifyAuthError.notConnected
         }
+        // 錯誤轉換放在 Task 內，讓同時等待同一個 refreshTask 的呼叫端拿到一致的錯誤
         let task = Task { () throws -> String in
-            try await self.requestToken(params: [
-                "grant_type": "refresh_token",
-                "refresh_token": refreshToken,
-                "client_id": self.clientId.trimmingCharacters(in: .whitespacesAndNewlines)
-            ])
+            do {
+                return try await self.requestToken(params: [
+                    "grant_type": "refresh_token",
+                    "refresh_token": refreshToken,
+                    "client_id": self.clientId.trimmingCharacters(in: .whitespacesAndNewlines)
+                ])
+            } catch SpotifyAuthError.tokenRequestFailed(let msg) where msg.contains("invalid_grant") {
+                // Refresh Token 被撤銷 (使用者在 Spotify 移除授權)，需要重新登入
+                self.disconnect()
+                throw SpotifyAuthError.notConnected
+            }
         }
         refreshTask = task
         defer { refreshTask = nil }
-        do {
-            return try await task.value
-        } catch SpotifyAuthError.tokenRequestFailed(let msg) where msg.contains("invalid_grant") {
-            // Refresh Token 被撤銷 (使用者在 Spotify 移除授權)，需要重新登入
-            disconnect()
-            throw SpotifyAuthError.notConnected
-        }
+        return try await task.value
     }
 
     /// API 回 401 時呼叫，下一次會強制換新 Token

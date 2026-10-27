@@ -110,7 +110,7 @@ private struct LyricActivityView: View {
     /// CarPlay 儀表板：空間小、需一眼可讀，只顯示當前句 + 下一句
     private var smallLayout: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(state.trackName)
+            Text(state.isPlaying ? state.trackName : "⏸ \(state.trackName)")
                 .font(.system(size: 11, weight: .semibold, design: .rounded))
                 .foregroundColor(Color.white.opacity(0.5))
                 .lineLimit(1)
@@ -142,7 +142,7 @@ private struct LyricActivityView: View {
                 LyricFallbackArt(themeOrange: themeOrange)
 
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(state.trackName)
+                    Text(state.isPlaying ? state.trackName : "⏸ \(state.trackName)")
                         .font(.system(size: 14, weight: .bold, design: .rounded))
                         .foregroundColor(themeOrange)
                         .lineLimit(1)
