@@ -107,9 +107,9 @@ private struct LyricActivityView: View {
         }
     }
 
-    /// CarPlay 儀表板：空間小、需一眼可讀，只顯示當前句 + 下一句
+    /// CarPlay 儀表板：空間小、需一眼可讀，只顯示當前句 + 下一句 (總高約 80pt)
     private var smallLayout: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 3) {
             Text(state.isPlaying ? state.trackName : "⏸ \(state.trackName)")
                 .font(.system(size: 11, weight: .semibold, design: .rounded))
                 .foregroundColor(Color.white.opacity(0.5))
@@ -118,7 +118,7 @@ private struct LyricActivityView: View {
             Text(state.currentLyric.isEmpty ? " " : state.currentLyric)
                 .font(.system(size: 18, weight: .heavy, design: .rounded))
                 .foregroundColor(themeOrange)
-                .lineLimit(2)
+                .lineLimit(1)
                 .minimumScaleFactor(0.6)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .animation(.easeInOut(duration: 0.35), value: state.currentLyric)
@@ -134,8 +134,9 @@ private struct LyricActivityView: View {
         .background(darkBg)
     }
 
+    /// iPhone 鎖定畫面：系統上限約 160pt，標題列 32 + 4 行歌詞 + 間距，總高約 150pt
     private var mediumLayout: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             // 頂部歌曲資訊列：精緻圓角專輯封面 + 歌名/歌手
             HStack(spacing: 10) {
                 // Live Activity 無法下載網路圖片 (AsyncImage 在 Widget 中不會載入)，固定使用主題封面
@@ -156,35 +157,35 @@ private struct LyricActivityView: View {
             }
 
             // 4 行滿版歌詞主體：滑順切換無閃爍、純文字染色絕無背景溢色
-            VStack(alignment: .leading, spacing: 7) {
-                // 第 1 條：之前唱過的 (大字 15pt、微淡灰)
+            VStack(alignment: .leading, spacing: 5) {
+                // 第 1 條：之前唱過的 (14pt、微淡灰)
                 Text(state.prevLyric.isEmpty ? " " : state.prevLyric)
-                    .font(.system(size: 15, weight: .medium, design: .rounded))
+                    .font(.system(size: 14, weight: .medium, design: .rounded))
                     .foregroundColor(Color.white.opacity(0.32))
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
                     .animation(.easeInOut(duration: 0.35), value: state.prevLyric)
 
-                // 第 2 條：當下演唱主行 (24pt 滿版大字號、極致加粗、經典純橘色、無閃爍滑順切換)
+                // 第 2 條：當下演唱主行 (22pt 滿版大字號、極致加粗、經典純橘色、無閃爍滑順切換)
                 Text(state.currentLyric.isEmpty ? " " : state.currentLyric)
-                    .font(.system(size: 24, weight: .heavy, design: .rounded))
+                    .font(.system(size: 22, weight: .heavy, design: .rounded))
                     .foregroundColor(themeOrange)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .animation(.easeInOut(duration: 0.35), value: state.currentLyric)
 
-                // 第 3 條：下一句即將唱 (大字 17pt、高亮白)
+                // 第 3 條：下一句即將唱 (16pt、高亮白)
                 Text(state.nextLyric1.isEmpty ? " " : state.nextLyric1)
-                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
                     .foregroundColor(Color.white.opacity(0.78))
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
                     .animation(.easeInOut(duration: 0.35), value: state.nextLyric1)
 
-                // 第 4 條：下下句未來預覽 (14pt、次微淡)
+                // 第 4 條：下下句未來預覽 (13pt、次微淡)
                 Text(state.nextLyric2.isEmpty ? " " : state.nextLyric2)
-                    .font(.system(size: 14, weight: .regular, design: .rounded))
+                    .font(.system(size: 13, weight: .regular, design: .rounded))
                     .foregroundColor(Color.white.opacity(0.35))
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
@@ -192,7 +193,7 @@ private struct LyricActivityView: View {
             }
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.vertical, 10)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .background(darkBg)
     }
@@ -209,6 +210,6 @@ private struct LyricFallbackArt: View {
                 .font(.system(size: 16, weight: .bold))
                 .foregroundColor(.white)
         }
-        .frame(width: 38, height: 38)
+        .frame(width: 32, height: 32)
     }
 }
